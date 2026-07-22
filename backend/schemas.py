@@ -63,7 +63,7 @@ class LibroVivoRespuesta(LibroVivoBase):
 class InteraccionCrear(BaseModel):
     personaje: str
     mensaje_usuario: str
-    respuesta_guia: str
+    respuesta_guia: Optional[str] = ""  # Se hace opcional para que la IA la inyecte
 
 
 class InteraccionRespuesta(InteraccionCrear):

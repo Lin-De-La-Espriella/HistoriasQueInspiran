@@ -6,6 +6,7 @@ import models
 import schemas
 import crud
 from database import engine, get_db
+import ia_service  # <-- NUEVA IMPORTACIÓN
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -111,6 +112,38 @@ def guardar_interaccion(
     interaccion: schemas.InteraccionCrear,
     db: Session = Depends(get_db),
 ):
+
+    # 1. Obtener el contexto del usuario desde la base de datos
+    db_usuario = (
+        db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    )
+    if not db_usuario:
+        raise HTTPException(
+            status_code=404, detail="Usuario no encontrado en la plataforma."
+        )
+
+    # Extraer variables para el Prompt
+    estado_arbol = (
+        db_usuario.arbol.estado_crecimiento if db_usuario.arbol else "semilla"
+    )
+    nivel_usuario = db_usuario.pasaporte.nivel_actual if db_usuario.pasaporte else 1
+
+    # 2. Inyectar la Inteligencia Artificial si el personaje es XiXi
+    if interaccion.personaje.lower() == "xixi":
+        respuesta_ia = ia_service.generar_respuesta_xixi(
+            mensaje_usuario=interaccion.mensaje_usuario,
+            estado_arbol=estado_arbol,
+            nivel_usuario=nivel_usuario,
+        )
+        # Sobrescribir el campo vacío con la respuesta generada
+        interaccion.respuesta_guia = respuesta_ia
+    elif not interaccion.respuesta_guia:
+        # Fallback en caso de que sea otro personaje aún no programado
+        interaccion.respuesta_guia = (
+            "Aún estoy aprendiendo a comunicarme. ¡Pronto podré hablar contigo!"
+        )
+
+    # 3. Guardar la transacción completa en la base de datos
     return crud.registrar_interaccion(
         db=db, usuario_id=usuario_id, interaccion=interaccion
     )
