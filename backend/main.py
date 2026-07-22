@@ -67,3 +67,23 @@ def asignarle_mision(
 )
 def ver_misiones(usuario_id: int, db: Session = Depends(get_db)):
     return crud.obtener_misiones_usuario(db=db, usuario_id=usuario_id)
+
+
+@app.put(
+    "/usuarios/{usuario_id}/misiones/{mision_id}/completar",
+    response_model=schemas.MisionRespuesta,
+    tags=["Gamificación"],
+)
+def completar_mision_usuario(
+    usuario_id: int, mision_id: int, db: Session = Depends(get_db)
+):
+    mision_actualizada = crud.completar_mision(
+        db=db, usuario_id=usuario_id, mision_id=mision_id
+    )
+
+    if not mision_actualizada:
+        raise HTTPException(
+            status_code=400,
+            detail="Operación rechazada: La misión no existe o ya fue reclamada.",
+        )
+    return mision_actualizada

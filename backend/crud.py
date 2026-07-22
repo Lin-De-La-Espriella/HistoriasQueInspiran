@@ -56,3 +56,55 @@ def obtener_misiones_usuario(db: Session, usuario_id: int):
         .filter(models.MisionUsuario.usuario_id == usuario_id)
         .all()
     )
+
+
+# --- MOTOR DE GAMIFICACIÓN: Completar Misión ---
+def completar_mision(db: Session, usuario_id: int, mision_id: int):
+    # 1. Buscar la misión y verificar que pertenece al usuario
+    db_mision = (
+        db.query(models.MisionUsuario)
+        .filter(
+            models.MisionUsuario.id == mision_id,
+            models.MisionUsuario.usuario_id == usuario_id,
+        )
+        .first()
+    )
+
+    # Validar que exista y no esté ya completada para evitar duplicidad de puntos
+    if not db_mision or db_mision.estado == "completada":
+        return None
+
+    # 2. Cambiar estado
+    db_mision.estado = "completada"
+    puntos = db_mision.recompensa_puntos
+
+    # 3. Transferir recursos al Pasaporte
+    db_pasaporte = (
+        db.query(models.Pasaporte)
+        .filter(models.Pasaporte.usuario_id == usuario_id)
+        .first()
+    )
+    if db_pasaporte:
+        db_pasaporte.puntos_experiencia += puntos
+        # Fórmula de Nivel: Cada 100 puntos sube 1 nivel
+        db_pasaporte.nivel_actual = (db_pasaporte.puntos_experiencia // 100) + 1
+
+    # 4. Transferir recursos al Árbol y calcular Evolución
+    db_arbol = (
+        db.query(models.ArbolProgreso)
+        .filter(models.ArbolProgreso.usuario_id == usuario_id)
+        .first()
+    )
+    if db_arbol:
+        db_arbol.energia_vital += puntos
+
+        # Lógica de Evolución
+        if db_arbol.energia_vital >= 200:
+            db_arbol.estado_crecimiento = "arbol_joven"
+        elif db_arbol.energia_vital >= 150:
+            db_arbol.estado_crecimiento = "brote"
+
+    # 5. Sellar la transacción en la base de datos
+    db.commit()
+    db.refresh(db_mision)
+    return db_mision
