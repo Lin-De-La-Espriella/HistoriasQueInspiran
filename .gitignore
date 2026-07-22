@@ -1,0 +1,14 @@
+# Entornos virtuales de Python
+.venv/
+env/
+
+# Archivos de sistema y caché
+__pycache__/
+*.pyc
+.DS_Store
+
+# Variables de entorno y seguridad
+.env
+
+# Persistencia de base de datos local
+database/data/
