@@ -3,12 +3,10 @@ import models
 import schemas
 
 
-# Obtener usuario por Email
 def obtener_usuario_por_email(db: Session, email: str):
     return db.query(models.Usuario).filter(models.Usuario.email == email).first()
 
 
-# Crear Usuario + Inicializar Pasaporte y Árbol de forma atómica
 def crear_usuario(db: Session, usuario: schemas.UsuarioCrear):
     # 1. Crear el registro del usuario
     db_usuario = models.Usuario(
@@ -26,17 +24,50 @@ def crear_usuario(db: Session, usuario: schemas.UsuarioCrear):
     db_arbol = models.ArbolProgreso(usuario_id=db_usuario.id)
     db.add(db_arbol)
 
+    # 4. Inicializar su Libro Vivo
+    db_libro = models.LibroVivo(usuario_id=db_usuario.id)
+    db.add(db_libro)
+
     db.commit()
     db.refresh(db_usuario)
     return db_usuario
 
 
-# Listar todos los usuarios
+def obtener_libro_vivo(db: Session, usuario_id: int):
+    return (
+        db.query(models.LibroVivo)
+        .filter(models.LibroVivo.usuario_id == usuario_id)
+        .first()
+    )
+
+
+def registrar_interaccion(
+    db: Session, usuario_id: int, interaccion: schemas.InteraccionCrear
+):
+    db_interaccion = models.InteraccionGuia(
+        usuario_id=usuario_id,
+        personaje=interaccion.personaje,
+        mensaje_usuario=interaccion.mensaje_usuario,
+        respuesta_guia=interaccion.respuesta_guia,
+    )
+    db.add(db_interaccion)
+    db.commit()
+    db.refresh(db_interaccion)
+    return db_interaccion
+
+
+def obtener_historial_interacciones(db: Session, usuario_id: int):
+    return (
+        db.query(models.InteraccionGuia)
+        .filter(models.InteraccionGuia.usuario_id == usuario_id)
+        .all()
+    )
+
+
 def obtener_usuarios(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Usuario).offset(skip).limit(limit).all()
 
 
-# Crear Misión para un Usuario
 def crear_mision_usuario(db: Session, mision: schemas.MisionCrear, usuario_id: int):
     db_mision = models.MisionUsuario(
         usuario_id=usuario_id,
@@ -49,7 +80,6 @@ def crear_mision_usuario(db: Session, mision: schemas.MisionCrear, usuario_id: i
     return db_mision
 
 
-# Obtener Misiones de un Usuario
 def obtener_misiones_usuario(db: Session, usuario_id: int):
     return (
         db.query(models.MisionUsuario)
@@ -58,9 +88,7 @@ def obtener_misiones_usuario(db: Session, usuario_id: int):
     )
 
 
-# --- MOTOR DE GAMIFICACIÓN: Completar Misión ---
 def completar_mision(db: Session, usuario_id: int, mision_id: int):
-    # 1. Buscar la misión y verificar que pertenece al usuario
     db_mision = (
         db.query(models.MisionUsuario)
         .filter(
@@ -70,15 +98,12 @@ def completar_mision(db: Session, usuario_id: int, mision_id: int):
         .first()
     )
 
-    # Validar que exista y no esté ya completada para evitar duplicidad de puntos
     if not db_mision or db_mision.estado == "completada":
         return None
 
-    # 2. Cambiar estado
     db_mision.estado = "completada"
     puntos = db_mision.recompensa_puntos
 
-    # 3. Transferir recursos al Pasaporte
     db_pasaporte = (
         db.query(models.Pasaporte)
         .filter(models.Pasaporte.usuario_id == usuario_id)
@@ -86,10 +111,8 @@ def completar_mision(db: Session, usuario_id: int, mision_id: int):
     )
     if db_pasaporte:
         db_pasaporte.puntos_experiencia += puntos
-        # Fórmula de Nivel: Cada 100 puntos sube 1 nivel
         db_pasaporte.nivel_actual = (db_pasaporte.puntos_experiencia // 100) + 1
 
-    # 4. Transferir recursos al Árbol y calcular Evolución
     db_arbol = (
         db.query(models.ArbolProgreso)
         .filter(models.ArbolProgreso.usuario_id == usuario_id)
@@ -98,13 +121,11 @@ def completar_mision(db: Session, usuario_id: int, mision_id: int):
     if db_arbol:
         db_arbol.energia_vital += puntos
 
-        # Lógica de Evolución
         if db_arbol.energia_vital >= 200:
             db_arbol.estado_crecimiento = "arbol_joven"
         elif db_arbol.energia_vital >= 150:
             db_arbol.estado_crecimiento = "brote"
 
-    # 5. Sellar la transacción en la base de datos
     db.commit()
     db.refresh(db_mision)
     return db_mision

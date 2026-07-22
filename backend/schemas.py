@@ -3,7 +3,6 @@ from datetime import datetime
 from typing import Optional, List
 
 
-# --- ESQUEMAS DE PASAPORTE ---
 class PasaporteBase(BaseModel):
     avatar_url: Optional[str] = None
     nivel_actual: int = 1
@@ -19,7 +18,6 @@ class PasaporteRespuesta(PasaporteBase):
         from_attributes = True
 
 
-# --- ESQUEMAS DE ÁRBOL ---
 class ArbolBase(BaseModel):
     estado_crecimiento: str = "semilla"
     energia_vital: int = 100
@@ -33,7 +31,6 @@ class ArbolRespuesta(ArbolBase):
         from_attributes = True
 
 
-# --- ESQUEMAS DE MISIÓNS ---
 class MisionCrear(BaseModel):
     titulo_mision: str
     recompensa_puntos: int = 10
@@ -48,7 +45,36 @@ class MisionRespuesta(MisionCrear):
         from_attributes = True
 
 
-# --- ESQUEMAS DE USUARIO ---
+class LibroVivoBase(BaseModel):
+    titulo_libro: str
+    paginas_completadas: int = 0
+    capitulo_actual: int = 1
+
+
+class LibroVivoRespuesta(LibroVivoBase):
+    id: int
+    usuario_id: int
+    resumen_adn: dict
+
+    class Config:
+        from_attributes = True
+
+
+class InteraccionCrear(BaseModel):
+    personaje: str
+    mensaje_usuario: str
+    respuesta_guia: str
+
+
+class InteraccionRespuesta(InteraccionCrear):
+    id: int
+    usuario_id: int
+    fecha_interaccion: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class UsuarioCrear(BaseModel):
     nombre: str
     email: EmailStr
@@ -64,6 +90,7 @@ class UsuarioRespuesta(BaseModel):
     fecha_creacion: datetime
     pasaporte: Optional[PasaporteRespuesta] = None
     arbol: Optional[ArbolRespuesta] = None
+    libro_vivo: Optional[LibroVivoRespuesta] = None
 
     class Config:
         from_attributes = True

@@ -7,7 +7,6 @@ import schemas
 import crud
 from database import engine, get_db
 
-# Asegurar creación de tablas
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -25,7 +24,6 @@ def ruta_principal():
     }
 
 
-# --- RUTAS DE USUARIOS ---
 @app.post(
     "/usuarios/",
     response_model=schemas.UsuarioRespuesta,
@@ -47,7 +45,6 @@ def listar_usuarios(skip: int = 0, limit: int = 100, db: Session = Depends(get_d
     return crud.obtener_usuarios(db=db, skip=skip, limit=limit)
 
 
-# --- RUTAS DE GAMIFICACIÓN ---
 @app.post(
     "/usuarios/{usuario_id}/misiones/",
     response_model=schemas.MisionRespuesta,
@@ -87,3 +84,42 @@ def completar_mision_usuario(
             detail="Operación rechazada: La misión no existe o ya fue reclamada.",
         )
     return mision_actualizada
+
+
+@app.get(
+    "/usuarios/{usuario_id}/libro/",
+    response_model=schemas.LibroVivoRespuesta,
+    tags=["Libro Vivo"],
+)
+def ver_libro_vivo(usuario_id: int, db: Session = Depends(get_db)):
+    libro = crud.obtener_libro_vivo(db=db, usuario_id=usuario_id)
+    if not libro:
+        raise HTTPException(
+            status_code=404, detail="Libro vivo no encontrado para este usuario."
+        )
+    return libro
+
+
+@app.post(
+    "/usuarios/{usuario_id}/interacciones/",
+    response_model=schemas.InteraccionRespuesta,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Guías IA"],
+)
+def guardar_interaccion(
+    usuario_id: int,
+    interaccion: schemas.InteraccionCrear,
+    db: Session = Depends(get_db),
+):
+    return crud.registrar_interaccion(
+        db=db, usuario_id=usuario_id, interaccion=interaccion
+    )
+
+
+@app.get(
+    "/usuarios/{usuario_id}/interacciones/",
+    response_model=List[schemas.InteraccionRespuesta],
+    tags=["Guías IA"],
+)
+def ver_historial_chat(usuario_id: int, db: Session = Depends(get_db)):
+    return crud.obtener_historial_interacciones(db=db, usuario_id=usuario_id)
