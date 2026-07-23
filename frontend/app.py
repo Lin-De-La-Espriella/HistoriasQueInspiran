@@ -183,17 +183,17 @@ else:
     st.markdown("---")
 
     # ---------------------------------------------------------
-    # 1. VISOR GRÁFICO DEL ÁRBOL (ANIMACIONES LOTTIE & DIMENSIONES)
+    # 1. VISOR GRÁFICO DEL ÁRBOL (MAPEO DE 10 FASES CON ÍCONOS DEDICADOS)
     # ---------------------------------------------------------
     st.markdown("### 🌲 Bio-Estructura en Crecimiento")
     col_img, col_desc = st.columns([1, 4])
 
     estado_lower = estado_arbol.lower()
 
-    # Mapeo exacto basado en la infografía oficial de las 10 etapas con animaciones Lottie
+    # Mapeo exclusivo con ícono asignado para cada una de las 10 etapas
     mapeo_bio = {
         "semilla": (
-            "https://lottie.host/5b2e5a1a-41f2-4977-8c38-8e6822c60e3a/f290L2R8Q1.json",
+            "🟡",
             "1. Semilla (El Inicio de Todo)",
             "Despertar la curiosidad y la seguridad básica.",
             "Abre la mente al aprendizaje y la exploración.",
@@ -202,7 +202,7 @@ else:
             "Descubre quién soy y qué me hace único.",
         ),
         "brote_menor": (
-            "https://lottie.host/82d9212c-5b23-45a8-9d82-8418ffed43b2/9ZpZJzW3O0.json",
+            "🌱",
             "2. Brote Menor (Mis Primeros Pasos)",
             "Desarrolla la confianza y la alegría de aprender.",
             "Fortalece la atención y la memoria.",
@@ -211,7 +211,7 @@ else:
             "Exploro, juego y aprendo a conocer mi mundo.",
         ),
         "brote_explorador": (
-            "https://lottie.host/82d9212c-5b23-45a8-9d82-8418ffed43b2/9ZpZJzW3O0.json",
+            "🍃",
             "3. Brote Explorador (Descubro y Me Pregunto)",
             "Aumenta la autoestima y la curiosidad sana.",
             "Desarrolla el pensamiento lógico y la creatividad.",
@@ -220,7 +220,7 @@ else:
             "Hago preguntas, busco respuestas y entiendo más.",
         ),
         "arbol_joven_enraizado": (
-            "https://lottie.host/a6133a88-82bc-4402-9a00-1c94411fb2d0/9ZpZJzW3O0.json",
+            "🪵",
             "4. Árbol Joven Enraizado (Construyo Mis Bases)",
             "Genera estabilidad emocional y autodisciplina.",
             "Organiza ideas y establece metas.",
@@ -229,7 +229,7 @@ else:
             "Formo hábitos, valores y una base sólida.",
         ),
         "arbol_joven_creativo": (
-            "https://lottie.host/a6133a88-82bc-4402-9a00-1c94411fb2d0/9ZpZJzW3O0.json",
+            "🌳",
             "5. Árbol Joven Creativo (Creo y Transformo)",
             "Potencia la motivación y la expresión personal.",
             "Desarrolla la creatividad y la resolución de problemas.",
@@ -238,7 +238,7 @@ else:
             "Imagino, creo y doy vida a mis ideas.",
         ),
         "arbol_joven_empatico": (
-            "https://lottie.host/a6133a88-82bc-4402-9a00-1c94411fb2d0/9ZpZJzW3O0.json",
+            "💜",
             "6. Árbol Joven Empático (Entiendo y Me Conecto)",
             "Profundiza la empatía y la inteligencia emocional.",
             "Amplía la visión y el pensamiento crítico.",
@@ -247,7 +247,7 @@ else:
             "Me pongo en el lugar del otro y construyo puentes.",
         ),
         "arbol_frondoso_lider": (
-            "https://lottie.host/a6133a88-82bc-4402-9a00-1c94411fb2d0/9ZpZJzW3O0.json",
+            "🌲",
             "7. Árbol Frondoso Líder (Guío e Inspiro)",
             "Fortalece la confianza y la madurez emocional.",
             "Toma decisiones con sabiduría y responsabilidad.",
@@ -256,7 +256,7 @@ else:
             "Lidero con el ejemplo y dejo huella positiva.",
         ),
         "arbol_frondoso_visionario": (
-            "https://lottie.host/a6133a88-82bc-4402-9a00-1c94411fb2d0/9ZpZJzW3O0.json",
+            "🍂",
             "8. Árbol Frondoso Visionario (Sueño en Grande)",
             "Desarrolla resiliencia y determinación.",
             "Piensa en grande y anticipa soluciones innovadoras.",
@@ -265,7 +265,7 @@ else:
             "Tengo visión, planifico y transformo sueños en realidades.",
         ),
         "arbol_frondoso_sabio": (
-            "https://lottie.host/a6133a88-82bc-4402-9a00-1c94411fb2d0/9ZpZJzW3O0.json",
+            "🌸",
             "9. Árbol Frondoso Sabio (Comparto Mi Sabiduría)",
             "Refuerza la gratitud y la generosidad.",
             "Integra conocimiento y experiencia para guiar.",
@@ -274,7 +274,7 @@ else:
             "Enseño, acompaño y dejo legado a otros.",
         ),
         "arbol_cosmico": (
-            "https://lottie.host/a6133a88-82bc-4402-9a00-1c94411fb2d0/9ZpZJzW3O0.json",
+            "✨",
             "10. Árbol Cósmico (Unido al Universo)",
             "Alcanza la paz interior y plenitud del alma.",
             "Trasciende límites y comprende la verdad universal.",
@@ -284,39 +284,25 @@ else:
         ),
     }
 
-    url_anim, titulo_fase, emo, men, soc, esp, frase = mapeo_bio.get(
+    icono_fase, titulo_fase, emo, men, soc, esp, frase = mapeo_bio.get(
         estado_lower,
         (
-            "https://lottie.host/5b2e5a1a-41f2-4977-8c38-8e6822c60e3a/f290L2R8Q1.json",
+            "🟡",
             "1. Semilla (El Inicio de Todo)",
             "Despertar la curiosidad y la seguridad básica.",
             "Abre la mente al aprendizaje y la exploración.",
             "Comienzo a reconocer mi lugar en el mundo.",
             "Conecta con su esencia y propósito personal.",
-            "Descubre quién soy y qué me hace único.",
+            "Descubre quién soy y qué me me hace único.",
         ),
     )
 
-    # Función auxiliar para cargar animación sin bloquear la app
-    @st.cache_data
-    def cargar_lottie(url):
-        r = requests.get(url)
-        if r.status_code == 200:
-            return r.json()
-        return None
-
-    animacion_json = cargar_lottie(url_anim)
-
-    # COLUMNA IZQUIERDA: ANIMACIÓN Y ENERGÍA VITAL
+    # COLUMNA IZQUIERDA: ÍCONO VISUAL Y ENERGÍA VITAL
     with col_img:
-        if animacion_json:
-            st_lottie(animacion_json, height=130, key=f"anim_{estado_lower}")
-        else:
-            st.markdown(
-                "<h1 style='text-align: center; font-size: 80px;'>🌳</h1>",
-                unsafe_allow_html=True,
-            )
-
+        st.markdown(
+            f"<h1 style='text-align: center; font-size: 85px; margin: 0;'>{icono_fase}</h1>",
+            unsafe_allow_html=True,
+        )
         st.markdown(
             f"<p style='text-align: center; font-size: 14px; color: #4CAF50; font-weight: bold; margin-top: 0px;'>"
             f"⚡ Energía Vital<br><span style='font-size: 18px;'>{energia_vital} pts</span></p>",
