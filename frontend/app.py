@@ -190,6 +190,9 @@ else:
         ["👽 Contactar a XiXi", "🎯 Misiones de Evolución"]
     )
 
+    # ---------------------------------------------------------
+    # TAB 1: CHAT CON XIXI (CON AUTO-ESCRITURA EN LIBRO VIVO)
+    # ---------------------------------------------------------
     with tab_chat:
         st.markdown("#### Frecuencia de Comunicación Alienígena Abierta")
         avatar_dict = {"user": "🧑‍🎓", "assistant": "👽"}
@@ -226,6 +229,8 @@ else:
                         st.session_state.messages.append(
                             {"role": "assistant", "content": respuesta}
                         )
+                        # Rerun para refrescar el marcador de hojas del Libro Vivo automáticamente
+                        st.rerun()
                     else:
                         st.error("Anomalía detectada. No se pudo enlazar con XiXi.")
 
