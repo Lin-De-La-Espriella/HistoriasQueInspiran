@@ -363,11 +363,31 @@ else:
     )
 
     # ---------------------------------------------------------
-    # TAB 1: CHAT CON XIXI (CON AUTO-ESCRITURA EN LIBRO VIVO)
+    # TAB 1: CHAT CON XIXI (CON AVATAR ROBOT ANIMADO)
     # ---------------------------------------------------------
     with tab_chat:
-        st.markdown("#### Frecuencia de Comunicación Alienígena Abierta")
-        avatar_dict = {"user": "🧑‍🎓", "assistant": "👽"}
+        col_xixi_anim, col_xixi_txt = st.columns([1, 3])
+
+        # Cargar animación del robot de LottieFiles
+        url_robot_xixi = "https://lottie.host/a563b67c-15eb-4c38-b805-c01061011c6d/xyz123.json"  # Reemplazar con el link CDN directo de Lottie
+
+        with col_xixi_anim:
+            # Muestra el robot animado arriba del chat
+            anim_xixi = cargar_lottie(url_robot_xixi)
+            if anim_xixi:
+                st_lottie(anim_xixi, height=120, key="robot_xixi_chat")
+            else:
+                st.markdown(
+                    "<h1 style='text-align: center;'>🤖</h1>", unsafe_allow_html=True
+                )
+
+        with col_xixi_txt:
+            st.markdown("#### Frecuencia de Comunicación Abierta")
+            st.caption("XiXi está en línea y procesando tus respuestas en tiempo real.")
+
+        st.markdown("---")
+
+        avatar_dict = {"user": "🧑‍🎓", "assistant": "🤖"}
 
         for message in st.session_state.messages:
             with st.chat_message(
