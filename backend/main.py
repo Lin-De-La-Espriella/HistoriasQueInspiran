@@ -28,6 +28,29 @@ def ruta_principal():
 
 
 # ==========================================
+# SECCIÓN: REGLAS DE NEGOCIO (CORE LÓGICO)
+# ==========================================
+
+
+def evaluar_y_actualizar_arbol(db, arbol_obj, pasaporte_obj):
+    """
+    Función de Modelado Lógico para evaluar si la bio-estructura debe evolucionar
+    según los puntos de experiencia (XP) acumulados en el Pasaporte.
+    """
+    xp = pasaporte_obj.puntos_experiencia
+
+    if xp >= 300 and arbol_obj.estado_crecimiento != "arbol_joven":
+        arbol_obj.estado_crecimiento = "arbol_joven"
+        arbol_obj.energia_vital += 50
+    elif xp >= 100 and xp < 300 and arbol_obj.estado_crecimiento == "semilla":
+        arbol_obj.estado_crecimiento = "brote"
+        arbol_obj.energia_vital += 25
+
+    db.commit()
+    db.refresh(arbol_obj)
+
+
+# ==========================================
 # SECCIÓN: USUARIOS (REGISTRO Y LISTADO)
 # ==========================================
 
@@ -146,6 +169,7 @@ def completar_mision_usuario(
         security.obtener_usuario_actual
     ),  # 🔒 RUTA PROTEGIDA
 ):
+    # 1. Completar misión en la BD (suma experiencia)
     mision_actualizada = crud.completar_mision(
         db=db, usuario_id=usuario_id, mision_id=mision_id
     )
@@ -155,6 +179,14 @@ def completar_mision_usuario(
             status_code=400,
             detail="Operación rechazada: La misión no existe o ya fue reclamada.",
         )
+
+    # 2. Extraer usuario para evaluar evolución del árbol
+    db_usuario = (
+        db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    )
+    if db_usuario and db_usuario.arbol and db_usuario.pasaporte:
+        evaluar_y_actualizar_arbol(db, db_usuario.arbol, db_usuario.pasaporte)
+
     return mision_actualizada
 
 
@@ -239,7 +271,6 @@ def guardar_interaccion(
     )
 
     # 4. 🤖 LÓGICA DE AUTO-ESCRITURA EN EL LIBRO VIVO
-    # CORRECCIÓN DEFINITIVA: Usamos models.InteraccionGuia (el nombre exacto de tu línea 28)
     total_interacciones = (
         db.query(models.InteraccionGuia)
         .filter(models.InteraccionGuia.usuario_id == usuario_id)
