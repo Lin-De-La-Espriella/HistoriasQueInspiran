@@ -63,7 +63,7 @@ class LibroVivoRespuesta(LibroVivoBase):
 class InteraccionCrear(BaseModel):
     personaje: str
     mensaje_usuario: str
-    respuesta_guia: Optional[str] = ""  # Se hace opcional para que la IA la inyecte
+    respuesta_guia: Optional[str] = ""
 
 
 class InteraccionRespuesta(InteraccionCrear):
@@ -78,6 +78,7 @@ class InteraccionRespuesta(InteraccionCrear):
 class UsuarioCrear(BaseModel):
     nombre: str
     email: EmailStr
+    password: str  # <-- NUEVO CAMPO AÑADIDO PARA RECIBIR LA CONTRASEÑA
     rol: Optional[str] = "estudiante"
 
 
@@ -94,3 +95,15 @@ class UsuarioRespuesta(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# --- ESQUEMAS DE AUTENTICACIÓN ---
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    email: Optional[str] = None

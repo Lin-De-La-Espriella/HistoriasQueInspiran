@@ -1,36 +1,44 @@
-from sqlalchemy.orm import Session
 import models
 import schemas
-
-
-def obtener_usuario_por_email(db: Session, email: str):
-    return db.query(models.Usuario).filter(models.Usuario.email == email).first()
+import security
+from sqlalchemy.orm import Session
 
 
 def crear_usuario(db: Session, usuario: schemas.UsuarioCrear):
-    # 1. Crear el registro del usuario
+    # 1. Encriptar contraseña
+    hashed_pw = security.obtener_password_hash(usuario.password)
+
+    # 2. Crear instancia del usuario
     db_usuario = models.Usuario(
-        nombre=usuario.nombre, email=usuario.email, rol=usuario.rol
+        nombre=usuario.nombre,
+        email=usuario.email,
+        hashed_password=hashed_pw,
+        rol=usuario.rol,
     )
     db.add(db_usuario)
     db.commit()
     db.refresh(db_usuario)
 
-    # 2. Inicializar su Pasaporte
+    # 3. Inicializar Ecosistema (Usando los nombres exactos de models.py)
     db_pasaporte = models.Pasaporte(usuario_id=db_usuario.id)
-    db.add(db_pasaporte)
 
-    # 3. Inicializar su Árbol de Crecimiento
-    db_arbol = models.ArbolProgreso(usuario_id=db_usuario.id)
-    db.add(db_arbol)
+    # Manejo dinámico según el nombre de la clase en tu models.py (Arbol o ArbolProgreso)
+    if hasattr(models, "ArbolProgreso"):
+        db_arbol = models.ArbolProgreso(usuario_id=db_usuario.id)
+    else:
+        db_arbol = models.Arbol(usuario_id=db_usuario.id)
 
-    # 4. Inicializar su Libro Vivo
     db_libro = models.LibroVivo(usuario_id=db_usuario.id)
-    db.add(db_libro)
 
+    # 4. Inserción agrupada en la BD
+    db.add_all([db_pasaporte, db_arbol, db_libro])
     db.commit()
     db.refresh(db_usuario)
     return db_usuario
+
+
+def obtener_usuario_por_email(db: Session, email: str):
+    return db.query(models.Usuario).filter(models.Usuario.email == email).first()
 
 
 def obtener_libro_vivo(db: Session, usuario_id: int):

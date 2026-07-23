@@ -1,12 +1,14 @@
 from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import List
 
 import models
 import schemas
 import crud
+import security
+import ia_service
 from database import engine, get_db
-import ia_service  # <-- NUEVA IMPORTACIÓN
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -25,6 +27,11 @@ def ruta_principal():
     }
 
 
+# ==========================================
+# SECCIÓN: USUARIOS (REGISTRO Y LISTADO)
+# ==========================================
+
+
 @app.post(
     "/usuarios/",
     response_model=schemas.UsuarioRespuesta,
@@ -32,6 +39,9 @@ def ruta_principal():
     tags=["Usuarios"],
 )
 def crear_nuevo_usuario(usuario: schemas.UsuarioCrear, db: Session = Depends(get_db)):
+    """
+    Endpoint para registrar un nuevo usuario y crear su ecosistema inicial.
+    """
     db_usuario = crud.obtener_usuario_por_email(db, email=usuario.email)
     if db_usuario:
         raise HTTPException(
@@ -44,6 +54,51 @@ def crear_nuevo_usuario(usuario: schemas.UsuarioCrear, db: Session = Depends(get
 @app.get("/usuarios/", response_model=List[schemas.UsuarioRespuesta], tags=["Usuarios"])
 def listar_usuarios(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return crud.obtener_usuarios(db=db, skip=skip, limit=limit)
+
+
+# ==========================================
+# SECCIÓN: AUTENTICACIÓN (LOGIN)
+# ==========================================
+
+
+@app.post("/token", response_model=schemas.Token, tags=["Autenticación"])
+def login_para_obtener_token(
+    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
+):
+    """
+    Endpoint para autenticar usuarios mediante OAuth2 (Email y Password)
+    y generar un Token de acceso JWT.
+    """
+    # 1. Buscar al usuario por correo
+    usuario = crud.obtener_usuario_por_email(db, email=form_data.username)
+
+    # 2. Validar existencia del usuario
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Correo o contraseña incorrectos.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # 3. Validar contraseña
+    if not security.verificar_password(form_data.password, usuario.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Correo o contraseña incorrectos.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # 4. Generar el Token de acceso JWT firmado
+    access_token = security.crear_token_acceso(
+        data={"sub": usuario.email, "usuario_id": usuario.id, "rol": usuario.rol}
+    )
+
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+# ==========================================
+# SECCIÓN: GAMIFICACIÓN (MISIONES)
+# ==========================================
 
 
 @app.post(
@@ -87,6 +142,11 @@ def completar_mision_usuario(
     return mision_actualizada
 
 
+# ==========================================
+# SECCIÓN: LIBRO VIVO
+# ==========================================
+
+
 @app.get(
     "/usuarios/{usuario_id}/libro/",
     response_model=schemas.LibroVivoRespuesta,
@@ -99,6 +159,11 @@ def ver_libro_vivo(usuario_id: int, db: Session = Depends(get_db)):
             status_code=404, detail="Libro vivo no encontrado para este usuario."
         )
     return libro
+
+
+# ==========================================
+# SECCIÓN: GUÍAS IA (CHAT)
+# ==========================================
 
 
 @app.post(
@@ -135,15 +200,13 @@ def guardar_interaccion(
             estado_arbol=estado_arbol,
             nivel_usuario=nivel_usuario,
         )
-        # Sobrescribir el campo vacío con la respuesta generada
         interaccion.respuesta_guia = respuesta_ia
     elif not interaccion.respuesta_guia:
-        # Fallback en caso de que sea otro personaje aún no programado
         interaccion.respuesta_guia = (
             "Aún estoy aprendiendo a comunicarme. ¡Pronto podré hablar contigo!"
         )
 
-    # 3. Guardar la transacción completa en la base de datos
+    # 3. Guardar la transacción completa
     return crud.registrar_interaccion(
         db=db, usuario_id=usuario_id, interaccion=interaccion
     )
