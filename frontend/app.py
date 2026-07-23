@@ -132,49 +132,145 @@ else:
 
     st.markdown("---")
 
-    # 1. VISOR GRÁFICO DEL ÁRBOL (MAPEO DINÁMICO DE 5 FASES)
+    # 1. VISOR GRÁFICO DEL ÁRBOL (MAPEO DINÁMICO DE 10 FASES MULTIDIMENSIONALES)
     st.markdown("### 🌲 Bio-Estructura en Crecimiento")
     col_img, col_desc = st.columns([1, 4])
 
     estado_lower = estado_arbol.lower()
 
-    if estado_lower == "semilla":
-        grafico, desc = (
+    # Mapeo exacto basado en la infografía oficial de las 10 etapas
+    mapeo_bio = {
+        "semilla": (
+            "🟡",
+            "1. Semilla (El Inicio de Todo)",
+            "Despertar la curiosidad y la seguridad básica.",
+            "Abre la mente al aprendizaje y la exploración.",
+            "Comienzo a reconocer mi lugar en el mundo.",
+            "Conecta con su esencia y propósito personal.",
+            "Descubre quién soy y qué me hace único.",
+        ),
+        "brote_menor": (
             "🌱",
-            "Una pequeña bio-estructura descansa, llena de potencial cósmico.",
-        )
-    elif estado_lower == "brote":
-        grafico, desc = (
-            "🌿",
-            "¡El tallo ha emergido! Tus emociones le otorgan fuerza vital.",
-        )
-    elif estado_lower == "arbol_joven":
-        grafico, desc = (
+            "2. Brote Menor (Mis Primeros Pasos)",
+            "Desarrolla la confianza y la alegría de aprender.",
+            "Fortalece la atención y la memoria.",
+            "Inicia la empatía y la colaboración.",
+            "Descubre la magia de la vida y la gratitud.",
+            "Exploro, juego y aprendo a conocer mi mundo.",
+        ),
+        "brote_explorador": (
+            "🍃",
+            "3. Brote Explorador (Descubro y Me Pregunto)",
+            "Aumenta la autoestima y la curiosidad sana.",
+            "Desarrolla el pensamiento lógico y la creatividad.",
+            "Fortalece la comunicación y el trabajo en equipo.",
+            "Se conecta con su intuición y su voz interior.",
+            "Hago preguntas, busco respuestas y entiendo más.",
+        ),
+        "arbol_joven_enraizado": (
+            "🪵",
+            "4. Árbol Joven Enraizado (Construyo Mis Bases)",
+            "Genera estabilidad emocional y autodisciplina.",
+            "Organiza ideas y establece metas.",
+            "Construye relaciones de confianza.",
+            "Fortalece su identidad y sus principios.",
+            "Formo hábitos, valores y una base sólida.",
+        ),
+        "arbol_joven_creativo": (
             "🌳",
-            "La estructura es firme. Las raíces procesan tu aprendizaje.",
-        )
-    elif estado_lower == "arbol_frondoso":
-        grafico, desc = (
+            "5. Árbol Joven Creativo (Creo y Transformo)",
+            "Potencia la motivación y la expresión personal.",
+            "Desarrolla la creatividad y la resolución de problemas.",
+            "Inspira y motiva a otros con su originalidad.",
+            "Descubre su propósito y talentos únicos.",
+            "Imagino, creo y doy vida a mis ideas.",
+        ),
+        "arbol_joven_empatico": (
+            "💜",
+            "6. Árbol Joven Empático (Entiendo y Me Conecto)",
+            "Profundiza la empatía y la inteligencia emocional.",
+            "Amplía la visión y el pensamiento crítico.",
+            "Fortalece la empatía, el respeto y la inclusión.",
+            "Comprende la unidad y la interconexión de la vida.",
+            "Me pongo en el lugar del otro y construyo puentes.",
+        ),
+        "arbol_frondoso_lider": (
             "🌲",
-            "Copa frondosa y raíces profundas. Refleja un alto grado de autoconocimiento.",
-        )
-    elif estado_lower in ["arbol_cosmico", "cosmico"]:
-        grafico, desc = (
+            "7. Árbol Frondoso Líder (Guío e Inspiro)",
+            "Fortalece la confianza y la madurez emocional.",
+            "Toma decisiones con sabiduría y responsabilidad.",
+            "Influye positivamente en su comunidad.",
+            "Usa su luz para servir y transformar entornos.",
+            "Lidero con el ejemplo y dejo huella positiva.",
+        ),
+        "arbol_frondoso_visionario": (
+            "🍂",
+            "8. Árbol Frondoso Visionario (Sueño en Grande)",
+            "Desarrolla resiliencia y determinación.",
+            "Piensa en grande y anticipa soluciones innovadoras.",
+            "Crea proyectos que impactan a muchos.",
+            "Confía en su propósito y en el camino del alma.",
+            "Tengo visión, planifico y transformo sueños en realidades.",
+        ),
+        "arbol_frondoso_sabio": (
+            "🌸",
+            "9. Árbol Frondoso Sabio (Comparto Mi Sabiduría)",
+            "Refuerza la gratitud y la generosidad.",
+            "Integra conocimiento y experiencia para guiar.",
+            "Forma líderes y deja un impacto duradero.",
+            "Vive su propósito y deja huella en la historia.",
+            "Enseño, acompaño y dejo legado a otros.",
+        ),
+        "arbol_cosmico": (
             "✨",
-            "Manifestación de energía pura en plenitud. Has alcanzado la maestría del Libro Vivo.",
-        )
-    else:
-        grafico, desc = "🌱", "Bio-estructura en fase inicial."
+            "10. Árbol Cósmico (Unido al Universo)",
+            "Alcanza la paz interior y plenitud del alma.",
+            "Trasciende límites y comprende la verdad universal.",
+            "Es faro de luz e inspiración para la humanidad.",
+            "Conecta con la energía divina y el todo.",
+            "Estoy en paz, en unidad y expando mi luz al universo.",
+        ),
+    }
 
+    # Desempaquetado de dimensiones
+    grafico, titulo_fase, emo, men, soc, esp, frase = mapeo_bio.get(
+        estado_lower,
+        (
+            "🟡",
+            "1. Semilla (El Inicio de Todo)",
+            "Despertar la curiosidad y la seguridad básica.",
+            "Abre la mente al aprendizaje y la exploración.",
+            "Comienzo a reconocer mi lugar en el mundo.",
+            "Conecta con su esencia y propósito personal.",
+            "Descubre quién soy y qué me hace único.",
+        ),
+    )
+
+    # COLUMNA IZQUIERDA: ÍCONO Y ENERGÍA ACUMULADA
     with col_img:
         st.markdown(
             f"<h1 style='text-align: center; font-size: 80px; margin: 0;'>{grafico}</h1>",
             unsafe_allow_html=True,
         )
-    with col_desc:
-        st.info(
-            f"**Fase Actual: {estado_arbol.replace('_', ' ').title()}**\n\n{desc}\n\n*Energía Vital Acumulada: {energia_vital} pts*"
+        st.markdown(
+            f"<p style='text-align: center; font-size: 14px; color: #4CAF50; font-weight: bold; margin-top: 5px;'>"
+            f"⚡ Energía Vital<br><span style='font-size: 18px;'>{energia_vital} pts</span></p>",
+            unsafe_allow_html=True,
         )
+
+    # COLUMNA DERECHA: FRANJA AZUL CON DETALLE MULTIDIMENSIONAL
+    with col_desc:
+        contenido_tarjeta = f"""
+        ### 📍 **Fase Actual: {titulo_fase}**
+        *{frase}*
+
+        ---
+        * **❤️ Emocional:** {emo}
+        * **🧠 Mental:** {men}
+        * **👥 Social:** {soc}
+        * **✨ Espiritual:** {esp}
+        """
+        st.info(contenido_tarjeta)
 
     st.markdown("---")
 
@@ -206,7 +302,7 @@ else:
         )
         st.write(f"**Páginas Escribiéndose:** {hojas_escritas}{hojas_vacias}")
 
-        st.markdown("---")
+    st.markdown("---")
 
     # PESTAÑAS DE INTERACCIÓN
     tab_chat, tab_misiones = st.tabs(

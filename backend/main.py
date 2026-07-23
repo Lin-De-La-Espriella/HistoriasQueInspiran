@@ -34,24 +34,41 @@ def ruta_principal():
 
 def evaluar_y_actualizar_arbol(db, arbol_obj, pasaporte_obj):
     """
-    Función de Modelado Lógico para evaluar la evolución biológica
-    en la escala de 0 a 1000 XP.
+    Modelado Lógico para la evolución de 10 Fases Biológicas (0 a 1000 XP).
     """
     xp = pasaporte_obj.puntos_experiencia
 
-    # 1. Determinar Estado según rango exacto de XP
-    if xp >= 1000 and arbol_obj.estado_crecimiento != "arbol_cosmico":
+    # Mapeo lineal según los 10 Capítulos
+    if xp >= 1000:
         arbol_obj.estado_crecimiento = "arbol_cosmico"
         arbol_obj.energia_vital = 300
-    elif xp >= 600 and xp < 1000 and arbol_obj.estado_crecimiento != "arbol_frondoso":
-        arbol_obj.estado_crecimiento = "arbol_frondoso"
+    elif xp >= 800:
+        arbol_obj.estado_crecimiento = "arbol_frondoso_sabio"
+        arbol_obj.energia_vital = 250
+    elif xp >= 700:
+        arbol_obj.estado_crecimiento = "arbol_frondoso_visionario"
+        arbol_obj.energia_vital = 225
+    elif xp >= 600:
+        arbol_obj.estado_crecimiento = "arbol_frondoso_lider"
         arbol_obj.energia_vital = 200
-    elif xp >= 300 and xp < 600 and arbol_obj.estado_crecimiento != "arbol_joven":
-        arbol_obj.estado_crecimiento = "arbol_joven"
+    elif xp >= 500:
+        arbol_obj.estado_crecimiento = "arbol_joven_empatico"
+        arbol_obj.energia_vital = 175
+    elif xp >= 400:
+        arbol_obj.estado_crecimiento = "arbol_joven_creativo"
         arbol_obj.energia_vital = 150
-    elif xp >= 100 and xp < 300 and arbol_obj.estado_crecimiento == "semilla":
-        arbol_obj.estado_crecimiento = "brote"
-        arbol_obj.energia_vital = 125
+    elif xp >= 300:
+        arbol_obj.estado_crecimiento = "arbol_joven_enraizado"
+        arbol_obj.energia_vital = 140
+    elif xp >= 200:
+        arbol_obj.estado_crecimiento = "brote_explorador"
+        arbol_obj.energia_vital = 130
+    elif xp >= 100:
+        arbol_obj.estado_crecimiento = "brote_menor"
+        arbol_obj.energia_vital = 120
+    else:
+        arbol_obj.estado_crecimiento = "semilla"
+        arbol_obj.energia_vital = 100
 
     db.commit()
     db.refresh(arbol_obj)
