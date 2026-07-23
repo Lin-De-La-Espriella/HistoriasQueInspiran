@@ -132,11 +132,12 @@ else:
 
     st.markdown("---")
 
-    # 1. VISOR GRÁFICO DEL ÁRBOL
+    # 1. VISOR GRÁFICO DEL ÁRBOL (MAPEO DINÁMICO DE 5 FASES)
     st.markdown("### 🌲 Bio-Estructura en Crecimiento")
     col_img, col_desc = st.columns([1, 4])
 
     estado_lower = estado_arbol.lower()
+
     if estado_lower == "semilla":
         grafico, desc = (
             "🌱",
@@ -152,8 +153,18 @@ else:
             "🌳",
             "La estructura es firme. Las raíces procesan tu aprendizaje.",
         )
+    elif estado_lower == "arbol_frondoso":
+        grafico, desc = (
+            "🌲",
+            "Copa frondosa y raíces profundas. Refleja un alto grado de autoconocimiento.",
+        )
+    elif estado_lower in ["arbol_cosmico", "cosmico"]:
+        grafico, desc = (
+            "✨",
+            "Manifestación de energía pura en plenitud. Has alcanzado la maestría del Libro Vivo.",
+        )
     else:
-        grafico, desc = "✨", "Manifestación de energía pura en desarrollo."
+        grafico, desc = "🌱", "Bio-estructura en fase inicial."
 
     with col_img:
         st.markdown(
@@ -162,7 +173,7 @@ else:
         )
     with col_desc:
         st.info(
-            f"**Fase Actual: {estado_arbol.capitalize()}**\n\n{desc}\n\n*Energía Vital Acumulada: {energia_vital}*"
+            f"**Fase Actual: {estado_arbol.replace('_', ' ').title()}**\n\n{desc}\n\n*Energía Vital Acumulada: {energia_vital} pts*"
         )
 
     st.markdown("---")
@@ -173,7 +184,7 @@ else:
     with col1:
         # Generación dinámica de la escalera según el nivel
         escalones = "🪜 " * nivel_actual
-        st.markdown(f"### 🎓 Pasaporte de Nivel")
+        st.markdown("### 🎓 Pasaporte de Nivel")
         st.metric(
             label="Ascenso de Nivel",
             value=f"Nivel {nivel_actual}",
@@ -187,7 +198,7 @@ else:
         hojas_escritas = "📄 " * paginas_completadas
         hojas_vacias = "⬜ " * (total_paginas - paginas_completadas)
 
-        st.markdown(f"### 📖 Libro Vivo")
+        st.markdown("### 📖 Libro Vivo")
         st.metric(
             label="Progreso de Historia",
             value=f"Capítulo {capitulo_actual}",
@@ -195,18 +206,7 @@ else:
         )
         st.write(f"**Páginas Escribiéndose:** {hojas_escritas}{hojas_vacias}")
 
-        # Botón para simular el registro de un aprendizaje con XiXi
-        if st.button("✍️ Registrar Reflexión (+1 Hoja)"):
-            res_aviso = requests.put(
-                f"{API_URL}/usuarios/{usuario_id}/libro/avanzar-pagina", headers=headers
-            )
-            if res_aviso.status_code == 200:
-                st.success("¡Reflexión guardada en el Libro Vivo!")
-                st.rerun()
-            else:
-                st.error("No se pudo registrar la página.")
-
-    st.markdown("---")
+        st.markdown("---")
 
     # PESTAÑAS DE INTERACCIÓN
     tab_chat, tab_misiones = st.tabs(

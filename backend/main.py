@@ -34,17 +34,24 @@ def ruta_principal():
 
 def evaluar_y_actualizar_arbol(db, arbol_obj, pasaporte_obj):
     """
-    Función de Modelado Lógico para evaluar si la bio-estructura debe evolucionar
-    según los puntos de experiencia (XP) acumulados en el Pasaporte.
+    Función de Modelado Lógico para evaluar la evolución biológica
+    en la escala de 0 a 1000 XP.
     """
     xp = pasaporte_obj.puntos_experiencia
 
-    if xp >= 300 and arbol_obj.estado_crecimiento != "arbol_joven":
+    # 1. Determinar Estado según rango exacto de XP
+    if xp >= 1000 and arbol_obj.estado_crecimiento != "arbol_cosmico":
+        arbol_obj.estado_crecimiento = "arbol_cosmico"
+        arbol_obj.energia_vital = 300
+    elif xp >= 600 and xp < 1000 and arbol_obj.estado_crecimiento != "arbol_frondoso":
+        arbol_obj.estado_crecimiento = "arbol_frondoso"
+        arbol_obj.energia_vital = 200
+    elif xp >= 300 and xp < 600 and arbol_obj.estado_crecimiento != "arbol_joven":
         arbol_obj.estado_crecimiento = "arbol_joven"
-        arbol_obj.energia_vital += 50
+        arbol_obj.energia_vital = 150
     elif xp >= 100 and xp < 300 and arbol_obj.estado_crecimiento == "semilla":
         arbol_obj.estado_crecimiento = "brote"
-        arbol_obj.energia_vital += 25
+        arbol_obj.energia_vital = 125
 
     db.commit()
     db.refresh(arbol_obj)
