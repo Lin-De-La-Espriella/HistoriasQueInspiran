@@ -194,7 +194,7 @@ def escribir_pagina_libro(
 
 
 # ==========================================
-# SECCIÓN: GUÍAS IA (CHAT)
+# SECCIÓN: GUÍAS IA (CHAT E INTERACCIONES)
 # ==========================================
 
 
@@ -208,26 +208,21 @@ def guardar_interaccion(
     usuario_id: int,
     interaccion: schemas.InteraccionCrear,
     db: Session = Depends(get_db),
-    usuario_actual: dict = Depends(
-        security.obtener_usuario_actual
-    ),  # 🔒 RUTA PROTEGIDA
+    usuario_actual: dict = Depends(security.obtener_usuario_actual),
 ):
-    # 1. Obtener el contexto del usuario desde la base de datos
+    # 1. Obtener el contexto del usuario
     db_usuario = (
         db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
     )
     if not db_usuario:
-        raise HTTPException(
-            status_code=404, detail="Usuario no encontrado en la plataforma."
-        )
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
-    # Extraer variables para el Prompt
     estado_arbol = (
         db_usuario.arbol.estado_crecimiento if db_usuario.arbol else "semilla"
     )
     nivel_usuario = db_usuario.pasaporte.nivel_actual if db_usuario.pasaporte else 1
 
-    # 2. Inyectar la Inteligencia Artificial si el personaje es XiXi
+    # 2. Generar respuesta con Gemini (XiXi)
     if interaccion.personaje.lower() == "xixi":
         respuesta_ia = ia_service.generar_respuesta_xixi(
             mensaje_usuario=interaccion.mensaje_usuario,
@@ -236,26 +231,29 @@ def guardar_interaccion(
         )
         interaccion.respuesta_guia = respuesta_ia
     elif not interaccion.respuesta_guia:
-        interaccion.respuesta_guia = (
-            "Aún estoy aprendiendo a comunicarme. ¡Pronto podré hablar contigo!"
-        )
+        interaccion.respuesta_guia = "Aún estoy decodificando la señal..."
 
-    # 3. Guardar la transacción completa
-    return crud.registrar_interaccion(
+    # 3. Registrar la interacción en BD
+    nueva_interaccion = crud.registrar_interaccion(
         db=db, usuario_id=usuario_id, interaccion=interaccion
     )
 
+    # 4. 🤖 LÓGICA DE AUTO-ESCRITURA EN EL LIBRO VIVO
+    # CORRECCIÓN DEFINITIVA: Usamos models.InteraccionGuia (el nombre exacto de tu línea 28)
+    total_interacciones = (
+        db.query(models.InteraccionGuia)
+        .filter(models.InteraccionGuia.usuario_id == usuario_id)
+        .count()
+    )
 
-@app.get(
-    "/usuarios/{usuario_id}/interacciones/",
-    response_model=List[schemas.InteraccionRespuesta],
-    tags=["Guías IA"],
-)
-def ver_historial_chat(
-    usuario_id: int,
-    db: Session = Depends(get_db),
-    usuario_actual: dict = Depends(
-        security.obtener_usuario_actual
-    ),  # 🔒 RUTA PROTEGIDA
-):
-    return crud.obtener_historial_interacciones(db=db, usuario_id=usuario_id)
+    # Cada 3 mensajes con XiXi, el Libro Vivo absorbe el aprendizaje y llena +1 Hoja
+    if total_interacciones > 0 and total_interacciones % 3 == 0:
+        libro = crud.obtener_libro_vivo(db=db, usuario_id=usuario_id)
+        if libro:
+            libro.paginas_completadas += 1
+            if libro.paginas_completadas >= 5:
+                libro.capitulo_actual += 1
+                libro.paginas_completadas = 0
+            db.commit()
+
+    return nueva_interaccion
