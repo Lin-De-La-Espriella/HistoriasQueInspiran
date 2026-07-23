@@ -260,43 +260,55 @@ else:
     with tab_misiones:
         st.markdown("#### Desafíos de Sincronización")
 
+        # Botón siempre visible para pruebas rápidas de XP
+        if st.button("⚡ Generar Misión de Prueba (+50 XP)"):
+            mision_payload = {
+                "titulo_mision": f"Reflexión Emocional #{st.session_state.get('mision_count', 1)}",
+                "recompensa_puntos": 50,
+            }
+            res_gen = requests.post(
+                f"{API_URL}/usuarios/{usuario_id}/misiones/",
+                json=mision_payload,
+                headers=headers,
+            )
+            if res_gen.status_code in [200, 201]:
+                st.session_state["mision_count"] = (
+                    st.session_state.get("mision_count", 1) + 1
+                )
+                st.rerun()
+
+        st.markdown("---")
+
         res_misiones = requests.get(
             f"{API_URL}/usuarios/{usuario_id}/misiones/", headers=headers
         )
 
-        if res_misiones.status_code == 200 and len(res_misiones.json()) == 0:
-            st.info("Sin anomalías pendientes. ¡Inicia un ciclo de prueba!")
-            if st.button("➕ Generar Misión: 'Reflexión Emocional Diaria' (+50 XP)"):
-                mision_payload = {
-                    "titulo_mision": "Reflexión Emocional Diaria: Identifica tus emociones hoy",
-                    "recompensa_puntos": 50,
-                }
-                requests.post(
-                    f"{API_URL}/usuarios/{usuario_id}/misiones/",
-                    json=mision_payload,
-                    headers=headers,
-                )
-                st.rerun()
-
-        elif res_misiones.status_code == 200:
+        if res_misiones.status_code == 200:
             misiones = res_misiones.json()
-            for m in misiones:
-                col_m1, col_m2 = st.columns([3, 1])
-                with col_m1:
-                    st.write(
-                        f"**{m['titulo_mision']}** | Recompensa: `+{m['recompensa_puntos']} XP`"
-                    )
-                with col_m2:
-                    if m["estado"] == "completada":
-                        st.success("✅ Sincronizada")
-                    else:
-                        if st.button(f"Procesar #{m['id']}", key=f"mision_{m['id']}"):
-                            res_complete = requests.put(
-                                f"{API_URL}/usuarios/{usuario_id}/misiones/{m['id']}/completar",
-                                headers=headers,
-                            )
-                            if res_complete.status_code == 200:
-                                st.success("¡Desafío completado!")
-                                st.rerun()
-                            else:
-                                st.error("Fallo de procesamiento.")
+            if not misiones:
+                st.info(
+                    "No tienes misiones activas. Usa el botón de arriba para generar una."
+                )
+            else:
+                for m in misiones:
+                    col_m1, col_m2 = st.columns([3, 1])
+                    with col_m1:
+                        st.write(
+                            f"**{m['titulo_mision']}** | Recompensa: `+{m['recompensa_puntos']} XP`"
+                        )
+                    with col_m2:
+                        if m["estado"] == "completada":
+                            st.success("✅ Sincronizada")
+                        else:
+                            if st.button(
+                                f"Procesar #{m['id']}", key=f"mision_{m['id']}"
+                            ):
+                                res_complete = requests.put(
+                                    f"{API_URL}/usuarios/{usuario_id}/misiones/{m['id']}/completar",
+                                    headers=headers,
+                                )
+                                if res_complete.status_code == 200:
+                                    st.success("¡Desafío completado!")
+                                    st.rerun()
+                                else:
+                                    st.error("Fallo de procesamiento.")
