@@ -36,3 +36,38 @@ def crear_token_acceso(data: dict, expires_delta: Optional[timedelta] = None) ->
     to_encode.update({"exp": expire})
     token_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return token_jwt
+
+
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+
+# Define de dónde extraerá FastAPI el token Bearer (del endpoint /token)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+
+def obtener_usuario_actual(token: str = Depends(oauth2_scheme)) -> dict:
+    """
+    Middleware/Dependencia para validar el Token JWT en endpoints protegidos.
+    Extrae la identidad del usuario y sus permisos (rol).
+    """
+    credenciales_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="No se pudieron validar las credenciales de acceso.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    try:
+        # Decodificar el Token usando nuestra clave secreta local
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        usuario_id: int = payload.get("usuario_id")
+        rol: str = payload.get("rol")
+
+        if email is None or usuario_id is None:
+            raise credenciales_exception
+
+        return {"email": email, "usuario_id": usuario_id, "rol": rol}
+
+    except JWTError:
+        raise credenciales_exception

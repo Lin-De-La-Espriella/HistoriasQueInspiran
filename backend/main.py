@@ -108,7 +108,12 @@ def login_para_obtener_token(
     tags=["Gamificación"],
 )
 def asignarle_mision(
-    usuario_id: int, mision: schemas.MisionCrear, db: Session = Depends(get_db)
+    usuario_id: int,
+    mision: schemas.MisionCrear,
+    db: Session = Depends(get_db),
+    usuario_actual: dict = Depends(
+        security.obtener_usuario_actual
+    ),  # 🔒 RUTA PROTEGIDA
 ):
     return crud.crear_mision_usuario(db=db, mision=mision, usuario_id=usuario_id)
 
@@ -118,7 +123,13 @@ def asignarle_mision(
     response_model=List[schemas.MisionRespuesta],
     tags=["Gamificación"],
 )
-def ver_misiones(usuario_id: int, db: Session = Depends(get_db)):
+def ver_misiones(
+    usuario_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: dict = Depends(
+        security.obtener_usuario_actual
+    ),  # 🔒 RUTA PROTEGIDA
+):
     return crud.obtener_misiones_usuario(db=db, usuario_id=usuario_id)
 
 
@@ -128,7 +139,12 @@ def ver_misiones(usuario_id: int, db: Session = Depends(get_db)):
     tags=["Gamificación"],
 )
 def completar_mision_usuario(
-    usuario_id: int, mision_id: int, db: Session = Depends(get_db)
+    usuario_id: int,
+    mision_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: dict = Depends(
+        security.obtener_usuario_actual
+    ),  # 🔒 RUTA PROTEGIDA
 ):
     mision_actualizada = crud.completar_mision(
         db=db, usuario_id=usuario_id, mision_id=mision_id
@@ -152,7 +168,13 @@ def completar_mision_usuario(
     response_model=schemas.LibroVivoRespuesta,
     tags=["Libro Vivo"],
 )
-def ver_libro_vivo(usuario_id: int, db: Session = Depends(get_db)):
+def ver_libro_vivo(
+    usuario_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: dict = Depends(
+        security.obtener_usuario_actual
+    ),  # 🔒 RUTA PROTEGIDA
+):
     libro = crud.obtener_libro_vivo(db=db, usuario_id=usuario_id)
     if not libro:
         raise HTTPException(
@@ -176,8 +198,10 @@ def guardar_interaccion(
     usuario_id: int,
     interaccion: schemas.InteraccionCrear,
     db: Session = Depends(get_db),
+    usuario_actual: dict = Depends(
+        security.obtener_usuario_actual
+    ),  # 🔒 RUTA PROTEGIDA
 ):
-
     # 1. Obtener el contexto del usuario desde la base de datos
     db_usuario = (
         db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
@@ -217,5 +241,11 @@ def guardar_interaccion(
     response_model=List[schemas.InteraccionRespuesta],
     tags=["Guías IA"],
 )
-def ver_historial_chat(usuario_id: int, db: Session = Depends(get_db)):
+def ver_historial_chat(
+    usuario_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: dict = Depends(
+        security.obtener_usuario_actual
+    ),  # 🔒 RUTA PROTEGIDA
+):
     return crud.obtener_historial_interacciones(db=db, usuario_id=usuario_id)
