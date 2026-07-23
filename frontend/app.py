@@ -21,6 +21,21 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 
 
+# ---------------------------------------------------------
+# FUNCIONES AUXILIARES GLOBALES
+# ---------------------------------------------------------
+@st.cache_data
+def cargar_lottie(url: str):
+    """Carga y almacena en caché animaciones Lottie desde una URL."""
+    try:
+        r = requests.get(url, timeout=5)
+        if r.status_code == 200:
+            return r.json()
+    except Exception:
+        pass
+    return None
+
+
 def autenticar_usuario(email, password):
     """Función auxiliar para solicitar el token e identificar al usuario."""
     response = requests.post(
@@ -89,7 +104,6 @@ if not st.session_state.token:
         "⚠️ Base de datos en la nube conectada, pero se encuentra en blanco. No existe el usuario maestro."
     )
     if st.button("🚀 Inyectar Usuario de Desarrollo en Supabase"):
-        # Crea el usuario por primera vez en la nube
         payload = {
             "email": DEV_EMAIL,
             "nombre": "Administrador (Nube)",
@@ -176,7 +190,7 @@ else:
     capitulo_actual = libro.get("capitulo_actual", 1)
     paginas_completadas = libro.get("paginas_completadas", 1)
 
-    # REGLA DE PRIORIDAD: Si hay una simulación activa en DEV, se sobreescribe el dato real
+    # Prioridad de simulación DEV
     if "estado_arbol_override" in st.session_state:
         estado_arbol = st.session_state["estado_arbol_override"]
 
@@ -190,7 +204,6 @@ else:
 
     estado_lower = estado_arbol.lower()
 
-    # Mapeo exclusivo con ícono asignado para cada una de las 10 etapas
     mapeo_bio = {
         "semilla": (
             "🟡",
@@ -293,11 +306,10 @@ else:
             "Abre la mente al aprendizaje y la exploración.",
             "Comienzo a reconocer mi lugar en el mundo.",
             "Conecta con su esencia y propósito personal.",
-            "Descubre quién soy y qué me me hace único.",
+            "Descubre quién soy y qué me hace único.",
         ),
     )
 
-    # COLUMNA IZQUIERDA: ÍCONO VISUAL Y ENERGÍA VITAL
     with col_img:
         st.markdown(
             f"<h1 style='text-align: center; font-size: 85px; margin: 0;'>{icono_fase}</h1>",
@@ -309,7 +321,6 @@ else:
             unsafe_allow_html=True,
         )
 
-    # COLUMNA DERECHA: FRANJA AZUL MULTIDIMENSIONAL
     with col_desc:
         contenido_tarjeta = f"""
         ### 📍 **Fase Actual: {titulo_fase}**
@@ -331,7 +342,6 @@ else:
     col1, col2 = st.columns(2)
 
     with col1:
-        # Generación dinámica de la escalera según el nivel
         escalones = "🪜 " * nivel_actual
         st.markdown("### 🎓 Pasaporte de Nivel")
         st.metric(
@@ -342,7 +352,6 @@ else:
         st.write(f"**Escalera de Progreso:** {escalones} 🧗")
 
     with col2:
-        # Generación dinámica de las hojas escritas del Libro Vivo
         total_paginas = 5
         hojas_escritas = "📄 " * paginas_completadas
         hojas_vacias = "⬜ " * (total_paginas - paginas_completadas)
@@ -363,31 +372,29 @@ else:
     )
 
     # ---------------------------------------------------------
-    # TAB 1: CHAT CON XIXI (CON AVATAR ROBOT ANIMADO)
+    # TAB 1: CHAT CON XIXI (CON ROBOT LOTTIE INTEGRADO)
     # ---------------------------------------------------------
     with tab_chat:
-        col_xixi_anim, col_xixi_txt = st.columns([1, 3])
+        col_xixi_anim, col_xixi_txt = st.columns([1, 4])
 
-        # Cargar animación del robot de LottieFiles
-        url_robot_xixi = "https://lottie.host/a563b67c-15eb-4c38-b805-c01061011c6d/xyz123.json"  # Reemplazar con el link CDN directo de Lottie
+        # Robot animado de prueba para XiXi (URL Lottie pública estable)
+        url_robot_xixi = "https://assets5.lottiefiles.com/packages/lf20_m6482p0i.json"
+        anim_xixi = cargar_lottie(url_robot_xixi)
 
         with col_xixi_anim:
-            # Muestra el robot animado arriba del chat
-            anim_xixi = cargar_lottie(url_robot_xixi)
             if anim_xixi:
-                st_lottie(anim_xixi, height=120, key="robot_xixi_chat")
+                st_lottie(anim_xixi, height=100, key="robot_xixi_chat")
             else:
                 st.markdown(
-                    "<h1 style='text-align: center;'>🤖</h1>", unsafe_allow_html=True
+                    "<h1 style='text-align: center; margin: 0;'>🤖</h1>",
+                    unsafe_allow_html=True,
                 )
 
         with col_xixi_txt:
-            st.markdown("#### Frecuencia de Comunicación Abierta")
-            st.caption("XiXi está en línea y procesando tus respuestas en tiempo real.")
+            st.markdown("#### Frecuencia de Comunicación Alienígena Abierta")
+            st.caption("XiXi está en línea decodificando tu proceso en tiempo real.")
 
-        st.markdown("---")
-
-        avatar_dict = {"user": "🧑‍🎓", "assistant": "🤖"}
+        avatar_dict = {"user": "🧑‍🎓", "assistant": "👽"}
 
         for message in st.session_state.messages:
             with st.chat_message(
@@ -421,7 +428,6 @@ else:
                         st.session_state.messages.append(
                             {"role": "assistant", "content": respuesta}
                         )
-                        # Rerun para refrescar el marcador de hojas del Libro Vivo automáticamente
                         st.rerun()
                     else:
                         st.error("Anomalía detectada. No se pudo enlazar con XiXi.")
@@ -432,7 +438,6 @@ else:
     with tab_misiones:
         st.markdown("#### Desafíos de Sincronización")
 
-        # Botón siempre visible para pruebas rápidas de XP
         if st.button("⚡ Generar Misión de Prueba (+50 XP)"):
             mision_payload = {
                 "titulo_mision": f"Reflexión Emocional #{st.session_state.get('mision_count', 1)}",
