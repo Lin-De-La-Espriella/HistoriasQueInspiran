@@ -39,13 +39,19 @@ def autenticar_usuario(email, password):
     return False
 
 
-# Autologin automático
+# Autologin automático y Control de Render
 if not st.session_state.token:
     try:
         if autenticar_usuario(DEV_EMAIL, DEV_PASS):
             st.rerun()
-    except Exception:
-        pass
+    except requests.exceptions.ConnectionError:
+        st.error(
+            "⏳ El cerebro en Render se está despertando (Cold Start). Espera 30 segundos y recarga la página."
+        )
+        st.stop()
+    except Exception as e:
+        st.error(f"⚠️ Error de conexión: {e}")
+        st.stop()
 
 # Estilos CSS Personalizados para la Ventana Flotante de XiXi
 st.markdown(
@@ -76,8 +82,25 @@ st.markdown(
 st.title("🌱 Historias que Inspiran®")
 st.subheader("Plataforma EdTech Gamificada")
 
+# Manejador del Estado Vacío de la Base de Datos
 if not st.session_state.token:
-    st.warning("Accediendo al entorno de desarrollo...")
+    st.warning(
+        "⚠️ Base de datos en la nube conectada, pero se encuentra en blanco. No existe el usuario maestro."
+    )
+    if st.button("🚀 Inyectar Usuario de Desarrollo en Supabase"):
+        # Crea el usuario por primera vez en la nube
+        payload = {
+            "email": DEV_EMAIL,
+            "nombre": "Administrador (Nube)",
+            "password": DEV_PASS,
+        }
+        res_crear = requests.post(f"{API_URL}/usuarios/", json=payload)
+
+        if res_crear.status_code in [200, 201]:
+            st.success("¡Estructura base inicializada! Reiniciando interfaz...")
+            st.rerun()
+        else:
+            st.error(f"Error de inyección: {res_crear.text}")
 else:
     headers = {"Authorization": f"Bearer {st.session_state.token}"}
     usuario_id = st.session_state.usuario_id or 1
