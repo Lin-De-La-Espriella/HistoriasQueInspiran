@@ -159,27 +159,37 @@ def completar_mision_usuario(
 
 
 # ==========================================
-# SECCIÓN: LIBRO VIVO
+# SECCIÓN: LIBRO VIVO (AVANCE)
 # ==========================================
 
 
-@app.get(
-    "/usuarios/{usuario_id}/libro/",
+@app.put(
+    "/usuarios/{usuario_id}/libro/avanzar-pagina",
     response_model=schemas.LibroVivoRespuesta,
     tags=["Libro Vivo"],
 )
-def ver_libro_vivo(
+def escribir_pagina_libro(
     usuario_id: int,
     db: Session = Depends(get_db),
-    usuario_actual: dict = Depends(
-        security.obtener_usuario_actual
-    ),  # 🔒 RUTA PROTEGIDA
+    usuario_actual: dict = Depends(security.obtener_usuario_actual),
 ):
+    """
+    Suma una página al Libro Vivo. Al llegar a 5 páginas,
+    avanza automáticamente de capítulo y reinicia el contador de hojas.
+    """
     libro = crud.obtener_libro_vivo(db=db, usuario_id=usuario_id)
     if not libro:
-        raise HTTPException(
-            status_code=404, detail="Libro vivo no encontrado para este usuario."
-        )
+        raise HTTPException(status_code=404, detail="Libro Vivo no encontrado.")
+
+    libro.paginas_completadas += 1
+
+    # Lógica de cierre de capítulo
+    if libro.paginas_completadas >= 5:
+        libro.capitulo_actual += 1
+        libro.paginas_completadas = 0
+
+    db.commit()
+    db.refresh(libro)
     return libro
 
 
