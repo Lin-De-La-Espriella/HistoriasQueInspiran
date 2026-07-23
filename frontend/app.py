@@ -5,7 +5,7 @@ import requests
 st.set_page_config(page_title="Historias que Inspiran®", page_icon="🌱", layout="wide")
 
 # Dirección base del Backend FastAPI
-API_URL = "http://127.0.0.1:8000"
+API_URL = "https://historias-que-inspiran-api.onrender.com"
 
 # Credenciales de Autologin para Desarrollo
 DEV_EMAIL = "lindley@historias.com"
