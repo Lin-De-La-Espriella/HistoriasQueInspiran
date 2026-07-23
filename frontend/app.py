@@ -113,6 +113,44 @@ else:
         st.session_state.messages = []
         st.rerun()
 
+    # BARRA LATERAL (SIDEBAR) - PANEL DE CONTROL Y DEV TOOLS
+    with st.sidebar:
+        st.markdown("### 👤 Sesión de Usuario")
+        st.info(f"**ID:** `{usuario_id}`\n\n**Conexión:** `Supabase Realtime`")
+
+        if st.button("🚪 Cerrar Sesión"):
+            st.session_state.pop("usuario_id", None)
+            st.rerun()
+
+        st.markdown("---")
+        st.markdown("### 🧪 Inspector de Bio-Estructuras (DEV)")
+
+        opciones_fases = [
+            ("semilla", "1. Semilla"),
+            ("brote_menor", "2. Brote Menor"),
+            ("brote_explorador", "3. Brote Explorador"),
+            ("arbol_joven_enraizado", "4. Árbol Joven Enraizado"),
+            ("arbol_joven_creativo", "5. Árbol Joven Creativo"),
+            ("arbol_joven_empatico", "6. Árbol Joven Empático"),
+            ("arbol_frondoso_lider", "7. Árbol Frondoso Líder"),
+            ("arbol_frondoso_visionario", "8. Árbol Frondoso Visionario"),
+            ("arbol_frondoso_sabio", "9. Árbol Frondoso Sabio"),
+            ("arbol_cosmico", "10. Árbol Cósmico"),
+        ]
+
+        fase_seleccionada = st.selectbox(
+            "Simular Vista de Fase:",
+            options=[op[0] for op in opciones_fases],
+            format_func=lambda x: dict(opciones_fases).get(x, x),
+        )
+
+        if st.button("👁️ Simular Fase en Pantalla"):
+            estado_arbol = fase_seleccionada
+            st.toast(
+                f"Simulando vista para: {fase_seleccionada.replace('_', ' ').title()}",
+                icon="🧪",
+            )
+
     # Cargar datos consolidados
     res_users = requests.get(f"{API_URL}/usuarios/", headers=headers)
     user_data = None
@@ -138,6 +176,100 @@ else:
     col_img, col_desc = st.columns([1, 4])
 
     estado_lower = estado_arbol.lower()
+
+    # Mapeo exacto basado en la infografía oficial de las 10 etapas con animaciones Lottie
+    mapeo_bio = {
+        "semilla": (
+            "https://lottie.host/5b2e5a1a-41f2-4977-8c38-8e6822c60e3a/f290L2R8Q1.json",
+            "1. Semilla (El Inicio de Todo)",
+            "Despertar la curiosidad y la seguridad básica.",
+            "Abre la mente al aprendizaje y la exploración.",
+            "Comienzo a reconocer mi lugar en el mundo.",
+            "Conecta con su esencia y propósito personal.",
+            "Descubre quién soy y qué me hace único.",
+        ),
+        "brote_menor": (
+            "https://lottie.host/82d9212c-5b23-45a8-9d82-8418ffed43b2/9ZpZJzW3O0.json",
+            "2. Brote Menor (Mis Primeros Pasos)",
+            "Desarrolla la confianza y la alegría de aprender.",
+            "Fortalece la atención y la memoria.",
+            "Inicia la empatía y la colaboración.",
+            "Descubre la magia de la vida y la gratitud.",
+            "Exploro, juego y aprendo a conocer mi mundo.",
+        ),
+        "brote_explorador": (
+            "https://lottie.host/82d9212c-5b23-45a8-9d82-8418ffed43b2/9ZpZJzW3O0.json",
+            "3. Brote Explorador (Descubro y Me Pregunto)",
+            "Aumenta la autoestima y la curiosidad sana.",
+            "Desarrolla el pensamiento lógico y la creatividad.",
+            "Fortalece la comunicación y el trabajo en equipo.",
+            "Se conecta con su intuición y su voz interior.",
+            "Hago preguntas, busco respuestas y entiendo más.",
+        ),
+        "arbol_joven_enraizado": (
+            "https://lottie.host/a6133a88-82bc-4402-9a00-1c94411fb2d0/9ZpZJzW3O0.json",
+            "4. Árbol Joven Enraizado (Construyo Mis Bases)",
+            "Genera estabilidad emocional y autodisciplina.",
+            "Organiza ideas y establece metas.",
+            "Construye relaciones de confianza.",
+            "Fortalece su identidad y sus principios.",
+            "Formo hábitos, valores y una base sólida.",
+        ),
+        "arbol_joven_creativo": (
+            "https://lottie.host/a6133a88-82bc-4402-9a00-1c94411fb2d0/9ZpZJzW3O0.json",
+            "5. Árbol Joven Creativo (Creo y Transformo)",
+            "Potencia la motivación y la expresión personal.",
+            "Desarrolla la creatividad y la resolución de problemas.",
+            "Inspira y motiva a otros con su originalidad.",
+            "Descubre su propósito y talentos únicos.",
+            "Imagino, creo y doy vida a mis ideas.",
+        ),
+        "arbol_joven_empatico": (
+            "https://lottie.host/a6133a88-82bc-4402-9a00-1c94411fb2d0/9ZpZJzW3O0.json",
+            "6. Árbol Joven Empático (Entiendo y Me Conecto)",
+            "Profundiza la empatía y la inteligencia emocional.",
+            "Amplía la visión y el pensamiento crítico.",
+            "Fortalece la empatía, el respeto y la inclusión.",
+            "Comprende la unidad y la interconexión de la vida.",
+            "Me pongo en el lugar del otro y construyo puentes.",
+        ),
+        "arbol_frondoso_lider": (
+            "https://lottie.host/a6133a88-82bc-4402-9a00-1c94411fb2d0/9ZpZJzW3O0.json",
+            "7. Árbol Frondoso Líder (Guío e Inspiro)",
+            "Fortalece la confianza y la madurez emocional.",
+            "Toma decisiones con sabiduría y responsabilidad.",
+            "Influye positivamente en su comunidad.",
+            "Usa su luz para servir y transformar entornos.",
+            "Lidero con el ejemplo y dejo huella positiva.",
+        ),
+        "arbol_frondoso_visionario": (
+            "https://lottie.host/a6133a88-82bc-4402-9a00-1c94411fb2d0/9ZpZJzW3O0.json",
+            "8. Árbol Frondoso Visionario (Sueño en Grande)",
+            "Desarrolla resiliencia y determinación.",
+            "Piensa en grande y anticipa soluciones innovadoras.",
+            "Crea proyectos que impactan a muchos.",
+            "Confía en su propósito y en el camino del alma.",
+            "Tengo visión, planifico y transformo sueños en realidades.",
+        ),
+        "arbol_frondoso_sabio": (
+            "https://lottie.host/a6133a88-82bc-4402-9a00-1c94411fb2d0/9ZpZJzW3O0.json",
+            "9. Árbol Frondoso Sabio (Comparto Mi Sabiduría)",
+            "Refuerza la gratitud y la generosidad.",
+            "Integra conocimiento y experiencia para guiar.",
+            "Forma líderes y deja un impacto duradero.",
+            "Vive su propósito y deja huella en la historia.",
+            "Enseño, acompaño y dejo legado a otros.",
+        ),
+        "arbol_cosmico": (
+            "https://lottie.host/a6133a88-82bc-4402-9a00-1c94411fb2d0/9ZpZJzW3O0.json",
+            "10. Árbol Cósmico (Unido al Universo)",
+            "Alcanza la paz interior y plenitud del alma.",
+            "Trasciende límites y comprende la verdad universal.",
+            "Es faro de luz e inspiración para la humanidad.",
+            "Conecta con la energía divina y el todo.",
+            "Estoy en paz, en unidad y expando mi luz al universo.",
+        ),
+    }
 
     # Mapeo oficial de las 10 fases con URLs de Animación Lottie Directas
     mapeo_bio = {
