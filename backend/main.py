@@ -260,6 +260,11 @@ def escribir_pagina_libro(
     return libro
 
 
+# ==========================================
+# SECCIÓN: GUÍAS IA (CHAT E INTERACCIONES)
+# ==========================================
+
+
 @app.post(
     "/usuarios/{usuario_id}/interacciones/",
     status_code=status.HTTP_201_CREATED,
@@ -273,9 +278,8 @@ def guardar_interaccion(
 ):
     """
     Motor Psico-Pedagógico de XiXi 2.0:
-    Utiliza Prompt Engineering avanzado para asignar recompensas dinámicas.
+    Llama a Gemini AI para analizar el texto, dar coaching y asignar XP.
     """
-    # 1. Obtener el contexto del usuario
     db_usuario = (
         db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
     )
@@ -288,34 +292,35 @@ def guardar_interaccion(
     )
     nivel_usuario = db_usuario.pasaporte.nivel_actual if db_usuario.pasaporte else 1
 
-    # 2. Inferencia de IA: Evaluación del mensaje
+    # 🚀 LLAMADA AL CEREBRO DE INTELIGENCIA ARTIFICIAL
     analisis_ia = ia_service.generar_analisis_xixi(
         mensaje_usuario=mensaje, estado_arbol=estado_arbol, nivel_usuario=nivel_usuario
     )
 
+    # Extraemos los datos calculados por Gemini
     xp_ganado = analisis_ia.get("xp_ganado", 5)
     energia_ganada = analisis_ia.get("energia_ganada", 2)
     respuesta_xixi = analisis_ia.get("respuesta_guia", "Frecuencia recibida.")
 
     interaccion.respuesta_guia = respuesta_xixi
 
-    # 3. Registrar la interacción en BD
+    # Registrar la interacción en Base de Datos
     nueva_interaccion = crud.registrar_interaccion(
         db=db, usuario_id=usuario_id, interaccion=interaccion
     )
 
-    # 4. Actualizar Pasaporte (XP y Nivel)
+    # Actualizar Pasaporte (XP y Nivel)
     if db_usuario.pasaporte:
         db_usuario.pasaporte.puntos_experiencia += xp_ganado
         nuevo_nivel = (db_usuario.pasaporte.puntos_experiencia // 100) + 1
         db_usuario.pasaporte.nivel_actual = nuevo_nivel
 
-    # 5. Actualizar Árbol (Energía Vital) y evaluar evolución
+    # Actualizar Árbol (Energía Vital) y evaluar evolución
     if db_usuario.arbol:
         db_usuario.arbol.energia_vital += energia_ganada
         evaluar_y_actualizar_arbol(db, db_usuario.arbol, db_usuario.pasaporte)
 
-    # 6. 🤖 LÓGICA DE AUTO-ESCRITURA EN EL LIBRO VIVO
+    # Lógica del Libro Vivo (Avanza 1 página cada 3 mensajes)
     total_interacciones = (
         db.query(models.InteraccionGuia)
         .filter(models.InteraccionGuia.usuario_id == usuario_id)
