@@ -11,20 +11,16 @@ def generar_analisis_xixi(
     mensaje_usuario: str, estado_arbol: str, nivel_usuario: int
 ) -> dict:
     """
-    Motor de IA de XiXi utilizando el SDK estable de google-generativeai
-    con respaldo dinámico y estructurado.
+    Motor de IA de XiXi utilizando el SDK estable y el alias de modelo 'gemini-pro'.
     """
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
 
     if not api_key:
-        print(
-            "❌ ALERTA: La variable GEMINI_API_KEY no está configurada en el entorno."
-        )
         return {
-            "respuesta_guia": f"Saludos, Lindley. He registrado tu transmisión ('{mensaje_usuario}'), pero la clave de IA (GEMINI_API_KEY) no está activa en las variables de entorno de Render.",
-            "emocion_detectada": "Alerta de Configuración",
-            "xp_ganado": 15,
-            "energia_ganada": 5,
+            "respuesta_guia": "⚠️ Error de Configuración: La variable 'GEMINI_API_KEY' no fue encontrada en las variables de entorno de Render.",
+            "emocion_detectada": "Configuración Requerida",
+            "xp_ganado": 5,
+            "energia_ganada": 2,
         }
 
     try:
@@ -34,48 +30,42 @@ def generar_analisis_xixi(
         Eres 'XiXi', mentor alienígena y estratega de negocios de 'Historias que Inspiran'.
         
         INSTRUCCIONES CLAVE:
-        1. Si el usuario pide un formato, estructura o guía, proveylo de forma detallada, profesional y orientada a ingeniería y emprendimiento.
-        2. Mantén un tono motivador, analítico y estratégico.
-        3. DEBES RESPONDER EXCLUSIVAMENTE EN FORMATO JSON VÁLIDO con las siguientes claves exactas:
+        1. Proporciona respuestas profesionales, analíticas e inspiradoras enfocadas en ingeniería y emprendimiento.
+        2. DEBES RESPONDER EXCLUSIVAMENTE EN FORMATO JSON VÁLIDO con las claves exactas:
            {{
-             "respuesta_guia": "Tu respuesta estructurada y profesional como XiXi",
+             "respuesta_guia": "Tu respuesta estratégica como XiXi",
              "emocion_detectada": "Estrategia Operativa",
              "xp_ganado": 25,
              "energia_ganada": 10
            }}
 
-        CONTEXTO ACTUAL:
-        - Nivel del Usuario: {nivel_usuario}
-        - Estado del Árbol: {estado_arbol}
-        - Mensaje del Usuario: {mensaje_usuario}
+        CONTEXTO:
+        - Nivel Usuario: {nivel_usuario} | Fase Árbol: {estado_arbol}
+        - Mensaje: {mensaje_usuario}
         """
 
-        # Usar el modelo estable y universal de Gemini
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        # Cambio CLAVE: Usamos el alias universal 'gemini-pro' para evitar el Error 404
+        model = genai.GenerativeModel("gemini-pro")
         response = model.generate_content(prompt_sistema)
         texto_respuesta = response.text.strip()
 
-        # Extracción segura de JSON mediante expresiones regulares
         match = re.search(r"\{.*\}", texto_respuesta, re.DOTALL)
         if match:
             return json.loads(match.group(0))
         else:
             return {
                 "respuesta_guia": texto_respuesta,
-                "emocion_detectada": "Estrategia Operativa",
+                "emocion_detectada": "Análisis Estratégico",
                 "xp_ganado": 25,
                 "energia_ganada": 10,
             }
 
     except Exception as e:
-        print(f"❌ Error crítico en motor Gemini: {str(e)}")
+        error_detallado = str(e)
+        print(f"❌ Error en Gemini API: {error_detallado}")
         return {
-            "respuesta_guia": (
-                f"Saludos, Lindley. He decodificado tu mensaje ('{mensaje_usuario}'). "
-                "Como estratega, te sugiero estructurar este proceso bajo un enfoque de "
-                "mejora continua y modelado lógico. (Nota técnica: Error de conexión con IA)."
-            ),
-            "emocion_detectada": "Resiliencia Operativa",
-            "xp_ganado": 20,
-            "energia_ganada": 10,
+            "respuesta_guia": f"⚠️ Fallo de Conexión Gemini: [{error_detallado}]",
+            "emocion_detectada": "Diagnóstico de Red",
+            "xp_ganado": 10,
+            "energia_ganada": 5,
         }
