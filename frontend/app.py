@@ -1,7 +1,7 @@
-import streamlit as st
-import requests
 import json
 import os
+import requests
+import streamlit as st
 from streamlit_lottie import st_lottie
 
 # Configuración de la página
@@ -101,7 +101,7 @@ if not st.session_state.token:
         st.title("Navegación")
         modo = st.radio(
             "Selecciona una opción:",
-            ["Iniciar Sesión", "Estado del Sistema (DEV)"],
+            ["Iniciar Sesión", "Registrarse", "Estado del Sistema (DEV)"],
         )
 
     # --- PANTALLA DE INICIO DE SESIÓN ---
@@ -117,11 +117,41 @@ if not st.session_state.token:
             else:
                 st.error("Credenciales incorrectas. Inténtalo de nuevo.")
 
+    # --- PANTALLA DE REGISTRO ---
+    elif modo == "Registrarse":
+        st.markdown("### 📝 Crear Nueva Cuenta")
+        nuevo_nombre = st.text_input("Nombre Completo", key="reg_nombre")
+        nuevo_email = st.text_input("Correo Electrónico", key="reg_email")
+        nuevo_password = st.text_input("Contraseña", type="password", key="reg_pass")
+
+        if st.button("Crear Cuenta"):
+            if nuevo_nombre and nuevo_email and nuevo_password:
+                payload = {
+                    "nombre": nuevo_nombre,
+                    "email": nuevo_email,
+                    "password": nuevo_password,
+                }
+                try:
+                    res_crear = requests.post(f"{API_URL}/usuarios/", json=payload)
+                    if res_crear.status_code in [200, 201]:
+                        st.success(
+                            "¡Usuario creado exitosamente! Intentando ingresar..."
+                        )
+                        if autenticar_usuario(nuevo_email, nuevo_password):
+                            st.rerun()
+                    else:
+                        st.error(f"Error al registrar: {res_crear.text}")
+                except Exception as e:
+                    st.error(f"Fallo de conexión: {e}")
+            else:
+                st.warning("Por favor completa todos los campos.")
+
     # --- PANTALLA DE INYECCIÓN DE DATOS (Mantenimiento) ---
     elif modo == "Estado del Sistema (DEV)":
         st.warning("⚠️ Módulo de diagnóstico de Base de Datos")
         st.info(
-            "Utiliza esta opción únicamente si la base de datos de Render/Supabase está completamente en blanco."
+            "Utiliza esta opción únicamente si la base de datos de Render/Supabase"
+            " está completamente en blanco."
         )
 
         if st.button("🚀 Inyectar Usuario de Desarrollo en Supabase"):
@@ -134,7 +164,8 @@ if not st.session_state.token:
                 res_crear = requests.post(f"{API_URL}/usuarios/", json=payload)
                 if res_crear.status_code in [200, 201]:
                     st.success(
-                        "¡Estructura base inicializada correctamente! Ve a Iniciar Sesión."
+                        "¡Estructura base inicializada correctamente! Ve a Iniciar"
+                        " Sesión."
                     )
                 else:
                     st.error(f"Error de inyección: {res_crear.text}")
@@ -338,13 +369,15 @@ else:
             }
             icono_fallback = emojis_fase.get(estado_limpio, "🌱")
             st.markdown(
-                f"<h1 style='text-align: center; font-size: 75px; margin: 0;'>{icono_fallback}</h1>",
+                "<h1 style='text-align: center; font-size: 75px; margin:"
+                f" 0;'>{icono_fallback}</h1>",
                 unsafe_allow_html=True,
             )
 
         st.markdown(
-            f"<p style='text-align: center; font-size: 14px; color: #4CAF50; font-weight: bold; margin-top: 5px;'>"
-            f"⚡ Energía Vital<br><span style='font-size: 18px;'>{energia_vital} pts</span></p>",
+            "<p style='text-align: center; font-size: 14px; color: #4CAF50;"
+            " font-weight: bold; margin-top: 5px;'>⚡ Energía Vital<br><span"
+            f" style='font-size: 18px;'>{energia_vital} pts</span></p>",
             unsafe_allow_html=True,
         )
 
@@ -460,7 +493,10 @@ else:
                         xp_ganado = datos.get("xp_ganado", 0)
                         energia_ganada = datos.get("energia_ganada", 0)
 
-                        mensaje_formateado = f"{respuesta}\n\n*(XiXi ha canalizado **+{xp_ganado} XP** a tu Pasaporte y **+{energia_ganada} pts** a tu Energía Vital)*"
+                        mensaje_formateado = (
+                            f"{respuesta}\n\n*(XiXi ha canalizado **+{xp_ganado} XP** a tu"
+                            f" Pasaporte y **+{energia_ganada} pts** a tu Energía Vital)*"
+                        )
 
                         st.markdown(mensaje_formateado)
                         st.session_state.messages.append(
@@ -476,7 +512,9 @@ else:
 
         if st.button("⚡ Generar Misión de Prueba (+50 XP)"):
             mision_payload = {
-                "titulo_mision": f"Reflexión Emocional #{st.session_state.get('mision_count', 1)}",
+                "titulo_mision": (
+                    f"Reflexión Emocional #{st.session_state.get('mision_count', 1)}"
+                ),
                 "recompensa_puntos": 50,
             }
             res_gen = requests.post(
@@ -500,14 +538,16 @@ else:
             misiones = res_misiones.json()
             if not misiones:
                 st.info(
-                    "No tienes misiones activas. Usa el botón de arriba para generar una."
+                    "No tienes misiones activas. Usa el botón de arriba para generar"
+                    " una."
                 )
             else:
                 for m in misiones:
                     col_m1, col_m2 = st.columns([3, 1])
                     with col_m1:
                         st.write(
-                            f"**{m['titulo_mision']}** | Recompensa: `+{m['recompensa_puntos']} XP`"
+                            f"**{m['titulo_mision']}** | Recompensa:"
+                            f" `+{m['recompensa_puntos']} XP`"
                         )
                     with col_m2:
                         if m["estado"] == "completada":
