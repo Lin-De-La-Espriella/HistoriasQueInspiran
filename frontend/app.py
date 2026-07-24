@@ -370,21 +370,16 @@ else:
     with col1:
         st.markdown("### 🎓 Pasaporte de Nivel")
 
-        # --- CÁLCULO MATEMÁTICO DE PROGRESO DE NIVEL ---
-        # Definimos los umbrales de XP según nuestra regla de negocio
-        umbrales_xp = [0, 100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500, 5500]
+        # --- CÁLCULO MATEMÁTICO PRECISO (REGLA: Nivel N empieza en (N-1)*100 XP) ---
+        xp_inicio_nivel = (nivel_actual - 1) * 100
+        xp_meta_siguiente = nivel_actual * 100
 
-        nivel_idx = min(nivel_actual, len(umbrales_xp) - 1)
-        xp_inicio_nivel = umbrales_xp[nivel_idx - 1] if nivel_idx > 0 else 0
-        xp_meta_siguiente = (
-            umbrales_xp[nivel_idx] if nivel_idx < len(umbrales_xp) else umbrales_xp[-1]
-        )
-
-        # Puntos ganados dentro del nivel presente
+        # Puntos dentro del nivel actual y los que faltan
         xp_nivel_actual = max(0, xp_actual - xp_inicio_nivel)
-        xp_requeridos_nivel = max(1, xp_meta_siguiente - xp_inicio_nivel)
+        xp_requeridos_nivel = xp_meta_siguiente - xp_inicio_nivel  # Siempre 100 XP
+        xp_faltantes = max(0, xp_meta_siguiente - xp_actual)
 
-        # Porcentaje para la barra (entre 0.0 y 1.0)
+        # Porcentaje exacto para la barra (entre 0.0 y 1.0)
         porcentaje_progreso = min(1.0, max(0.0, xp_nivel_actual / xp_requeridos_nivel))
 
         # --- DESPLIEGUE VISUAL ---
@@ -394,14 +389,20 @@ else:
             delta=f"{xp_actual} XP Totales",
         )
 
-        # Escalera gráfica de emoticonos
         escalones = "🪜 " * nivel_actual
         st.write(f"**Escalera de Progreso:** {escalones} 🧗")
 
-        # Barra de progreso visual dinámico
+        # Barra de progreso Streamlit
         st.progress(porcentaje_progreso)
-        st.caption(
-            f"🚀 Progreso de Nivel: **{int(porcentaje_progreso * 100)}%** ({xp_nivel_actual}/{xp_requeridos_nivel} XP para Nivel {nivel_actual + 1})"
+
+        # Texto HTML Personalizado: Blanco puro (#FFFFFF), fuente de 16px y negrita
+        st.markdown(
+            f"""
+            <p style='color: #FFFFFF; font-size: 16px; font-weight: bold; margin-top: 8px;'>
+                🚀 Te faltan <span style='color: #00FFCC;'>{xp_faltantes} XP</span> para alcanzar el Nivel {nivel_actual + 1}
+            </p>
+            """,
+            unsafe_allow_html=True,
         )
 
     with col2:
