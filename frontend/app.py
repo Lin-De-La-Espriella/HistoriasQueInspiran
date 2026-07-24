@@ -207,7 +207,7 @@ else:
     mapeo_bio = {
         "semilla": (
             "🟡",
-            "1. Semilla (El Inicio de Todo)",
+            "1. Semilla (El Inicio de Todo)",https://app.lottiefiles.com/animation/8157854c-18e2-4553-af24-9adff0a34361,
             "Despertar la curiosidad y la seguridad básica.",
             "Abre la mente al aprendizaje y la exploración.",
             "Comienzo a reconocer mi lugar en el mundo.",
@@ -372,27 +372,12 @@ else:
     )
 
     # ---------------------------------------------------------
-    # TAB 1: CHAT CON XIXI (CON ROBOT LOTTIE INTEGRADO)
+    # TAB 1: CHAT CON XIXI
     # ---------------------------------------------------------
     with tab_chat:
-        col_xixi_anim, col_xixi_txt = st.columns([1, 4])
-
-        # Robot animado de prueba para XiXi (URL Lottie pública estable)
-        url_robot_xixi = "https://assets5.lottiefiles.com/packages/lf20_m6482p0i.json"
-        anim_xixi = cargar_lottie(url_robot_xixi)
-
-        with col_xixi_anim:
-            if anim_xixi:
-                st_lottie(anim_xixi, height=100, key="robot_xixi_chat")
-            else:
-                st.markdown(
-                    "<h1 style='text-align: center; margin: 0;'>🤖</h1>",
-                    unsafe_allow_html=True,
-                )
-
-        with col_xixi_txt:
-            st.markdown("#### Frecuencia de Comunicación Alienígena Abierta")
-            st.caption("XiXi está en línea decodificando tu proceso en tiempo real.")
+        st.markdown("#### Frecuencia de Comunicación Alienígena Abierta")
+        st.caption("XiXi está en línea decodificando tu proceso en tiempo real.")
+        st.markdown("---")
 
         avatar_dict = {"user": "🧑‍🎓", "assistant": "👽"}
 
