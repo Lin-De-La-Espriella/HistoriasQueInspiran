@@ -155,28 +155,50 @@ class RequestAcceso(BaseModel):
 @app.post("/auth/login", response_model=schemas.Token, tags=["Autenticación"])
 def login_plataforma_json(req: RequestAcceso, db: Session = Depends(get_db)):
     """
-    Endpoint de login vía JSON con control de excepciones.
+    Endpoint de login vía JSON con validación estricta anti-nulos por autofill.
     """
-    correo_limpio = req.email.strip()
-    clave_limpia = req.password.strip()
+    # 1. Validación preventiva si el navegador envía datos vacíos por autofill
+    if not req.email or not req.password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Por favor ingresa un correo y una contraseña válidos.",
+        )
 
-    # 1. Buscar usuario
+    correo_limpio = str(req.email).strip()
+    clave_limpia = str(req.password).strip()
+
+    # 2. Búsqueda segura en base de datos
     usuario = crud.obtener_usuario_por_email(db, email=correo_limpio)
     if not usuario:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Correo o contraseña incorrectos.",
+            detail=f"No existe una cuenta con el correo: {correo_limpio}",
         )
 
-    # 2. Verificar contraseña
-    es_valida = security.verificar_password(clave_limpia, usuario.hashed_password)
-    if not es_valida:
+    # 3. Asegurar que el hash almacenado no sea nulo
+    hash_usuario = str(usuario.hashed_password or "").strip()
+    if not hash_usuario:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Correo o contraseña incorrectos.",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error crítico: El usuario no cuenta con un hash de seguridad válido en la base de datos.",
         )
 
-    # 3. Generar token
+    # 4. Verificación controlada de contraseña
+    try:
+        if not security.verificar_password(clave_limpia, hash_usuario):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="La contraseña es incorrecta.",
+            )
+    except HTTPException as http_ex:
+        raise http_ex
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Fallo de motor de encriptación: {str(e)}",
+        )
+
+    # 5. Generación de Token de acceso
     access_token = security.crear_token_acceso(
         data={"sub": usuario.email, "usuario_id": usuario.id, "rol": usuario.rol}
     )
