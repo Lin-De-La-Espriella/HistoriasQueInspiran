@@ -1,140 +1,71 @@
-# Importación de módulos locales con ruta relativa (.)
 from backend import models, schemas, security
-
-# Importación de librerías externas
+from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 
-def crear_usuario(db: Session, usuario: schemas.UsuarioCrear):
-    # 1. Encriptar contraseña
-    hashed_pw = security.obtener_password_hash(usuario.password)
-
-    # 2. Crear instancia del usuario
-    db_usuario = models.Usuario(
-        nombre=usuario.nombre,
-        email=usuario.email,
-        hashed_password=hashed_pw,
-        rol=usuario.rol,
-    )
-    db.add(db_usuario)
-    db.commit()
-    db.refresh(db_usuario)
-
-    # 3. Inicializar Ecosistema (Usando los nombres exactos de models.py)
-    db_pasaporte = models.Pasaporte(usuario_id=db_usuario.id)
-
-    # Manejo dinámico según el nombre de la clase en tu models.py (Arbol o ArbolProgreso)
-    if hasattr(models, "ArbolProgreso"):
-        db_arbol = models.ArbolProgreso(usuario_id=db_usuario.id)
-    else:
-        db_arbol = models.Arbol(usuario_id=db_usuario.id)
-
-    db_libro = models.LibroVivo(usuario_id=db_usuario.id)
-
-    # 4. Inserción agrupada en la BD
-    db.add_all([db_pasaporte, db_arbol, db_libro])
-    db.commit()
-    db.refresh(db_usuario)
-    return db_usuario
-
-
-def obtener_usuario_por_email(db: Session, email: str):
-    return db.query(models.Usuario).filter(models.Usuario.email == email).first()
-
-
-def obtener_libro_vivo(db: Session, usuario_id: int):
-    return (
-        db.query(models.LibroVivo)
-        .filter(models.LibroVivo.usuario_id == usuario_id)
+def crear_usuario(db: Session, usuario: schemas.UsuarioCreate):
+    # 1. Verificar si el correo ya existe antes de intentar insertar
+    usuario_existente = (
+        db.query(models.Usuario)
+        .filter(models.Usuario.email == usuario.email.strip())
         .first()
     )
-
-
-def registrar_interaccion(
-    db: Session, usuario_id: int, interaccion: schemas.InteraccionCrear
-):
-    db_interaccion = models.InteraccionGuia(
-        usuario_id=usuario_id,
-        personaje=interaccion.personaje,
-        mensaje_usuario=interaccion.mensaje_usuario,
-        respuesta_guia=interaccion.respuesta_guia,
-    )
-    db.add(db_interaccion)
-    db.commit()
-    db.refresh(db_interaccion)
-    return db_interaccion
-
-
-def obtener_historial_interacciones(db: Session, usuario_id: int):
-    return (
-        db.query(models.InteraccionGuia)
-        .filter(models.InteraccionGuia.usuario_id == usuario_id)
-        .all()
-    )
-
-
-def obtener_usuarios(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Usuario).offset(skip).limit(limit).all()
-
-
-def crear_mision_usuario(db: Session, mision: schemas.MisionCrear, usuario_id: int):
-    db_mision = models.MisionUsuario(
-        usuario_id=usuario_id,
-        titulo_mision=mision.titulo_mision,
-        recompensa_puntos=mision.recompensa_puntos,
-    )
-    db.add(db_mision)
-    db.commit()
-    db.refresh(db_mision)
-    return db_mision
-
-
-def obtener_misiones_usuario(db: Session, usuario_id: int):
-    return (
-        db.query(models.MisionUsuario)
-        .filter(models.MisionUsuario.usuario_id == usuario_id)
-        .all()
-    )
-
-
-def completar_mision(db: Session, usuario_id: int, mision_id: int):
-    db_mision = (
-        db.query(models.MisionUsuario)
-        .filter(
-            models.MisionUsuario.id == mision_id,
-            models.MisionUsuario.usuario_id == usuario_id,
+    if usuario_existente:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El correo electrónico ya se encuentra registrado.",
         )
-        .first()
-    )
 
-    if not db_mision or db_mision.estado == "completada":
-        return None
+    try:
+        # 2. Hashear contraseña
+        hashed_pwd = security.get_password_hash(usuario.password.strip())
 
-    db_mision.estado = "completada"
-    puntos = db_mision.recompensa_puntos
+        # 3. Crear Usuario base
+        db_usuario = models.Usuario(
+            nombre=usuario.nombre.strip(),
+            email=usuario.email.strip(),
+            hashed_password=hashed_pwd,
+            rol="estudiante",
+            activo=True,
+        )
+        db.add(db_usuario)
+        db.commit()
+        db.refresh(db_usuario)
 
-    db_pasaporte = (
-        db.query(models.Pasaporte)
-        .filter(models.Pasaporte.usuario_id == usuario_id)
-        .first()
-    )
-    if db_pasaporte:
-        db_pasaporte.puntos_experiencia += puntos
-        db_pasaporte.nivel_actual = (db_pasaporte.puntos_experiencia // 100) + 1
+        # 4. Crear relaciones iniciales
+        db_pasaporte = models.Pasaporte(
+            usuario_id=db_usuario.id, nivel_actual=1, puntos_experiencia=0
+        )
+        db.add(db_pasaporte)
 
-    db_arbol = (
-        db.query(models.ArbolProgreso)
-        .filter(models.ArbolProgreso.usuario_id == usuario_id)
-        .first()
-    )
-    if db_arbol:
-        db_arbol.energia_vital += puntos
+        db_arbol = models.ArbolProgreso(
+            usuario_id=db_usuario.id,
+            estado_crecimiento="semilla",
+            energia_vital=100,
+        )
+        db.add(db_arbol)
 
-        if db_arbol.energia_vital >= 200:
-            db_arbol.estado_crecimiento = "arbol_joven"
-        elif db_arbol.energia_vital >= 150:
-            db_arbol.estado_crecimiento = "brote"
+        db_libro = models.LibroVivo(
+            usuario_id=db_usuario.id, capitulo_actual=1, paginas_completadas=0
+        )
+        db.add(db_libro)
 
-    db.commit()
-    db.refresh(db_mision)
-    return db_mision
+        # Confirmar todas las relaciones
+        db.commit()
+        db.refresh(db_usuario)
+
+        return db_usuario
+
+    except IntegrityError as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error de integridad en la base de datos: {str(e.orig)}",
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Fallo interno al inicializar entidades: {str(e)}",
+        )
