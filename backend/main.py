@@ -2,16 +2,14 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import List
-
-import models
-import schemas
-import crud
-import security
-import ia_service
-from database import engine, get_db
 from pydantic import BaseModel
 import random
 
+# Imports del paquete local backend
+from . import models, schemas, crud, security, ia_service
+from .database import engine, get_db
+
+# Inicialización de la base de datos
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(

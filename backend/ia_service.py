@@ -1,113 +1,96 @@
 import json
 import os
 import re
-import google.generativeai as genai
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types
 
-# Leer la API Key desde la variable de entorno del sistema o de Render
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+# Carga explicita de variables de entorno desde la raíz y carpeta backend
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, ".."))
 
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+load_dotenv(dotenv_path=os.path.join(PROJECT_ROOT, ".env"))
+load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
+
+
+def obtener_cliente_gemini():
+    """Instancia el cliente oficial usando el nuevo SDK google-genai."""
+    api_key = os.getenv("GEMINI_API_KEY", "")
+    if api_key and api_key != "tu_clave_aqui":
+        try:
+            return genai.Client(api_key=api_key)
+        except Exception as e:
+            print(f"❌ Error al instanciar genai.Client: {e}")
+            return None
+    return None
 
 
 def generar_analisis_xixi(
     mensaje_usuario: str, estado_arbol: str, nivel_usuario: int
 ) -> dict:
-    """Motor de Coaching y Razonamiento Psico-Pedagógico para XiXi."""
-    if not GEMINI_API_KEY:
-        # Si no hay clave, retornamos una respuesta con razonamiento heurístico adaptativo
+    client = obtener_cliente_gemini()
+
+    if not client:
+        print(
+            "⚠️ ALERTA: No se pudo obtener el cliente Gemini. Entrando a respuesta local."
+        )
         return _respuesta_heuristica_avanzada(mensaje_usuario)
 
     try:
-        # Usamos el modelo optimizado
-        modelo = genai.GenerativeModel("gemini-1.5-flash")
-
-        prompt_sistema = f"""
-        Eres 'XiXi', el tutor psico-pedagógico y mentor alienígena de la plataforma EdTech 'Historias que Inspiran'.
-        Tu objetivo NO ES dar respuestas genéricas ni repetitivas, sino brindar un RAZONAMIENTO ESTRATÉGICO Y EMPÁTICO REAL.
-
-        CONTEXTO DEL USUARIO:
-        - Nivel Actual: {nivel_usuario}
-        - Fase de Bio-Estructura: {estado_arbol}
-
-        MENSAJE DEL USUARIO:
-        "{mensaje_usuario}"
-
-        INSTRUCCIONES DE RAZONAMIENTO:
-        1. Analiza detenidamente la inquietud del usuario (gestión de tiempo, emociones, proyectos, dudas).
-        2. Responde directamente a lo que te pregunta o expresa, ofreciéndole un consejo práctico, una pregunta de reflexión profunda o una estrategia accionable.
-        3. Mantén un tono cálido, sabio, inspirador y ligeramente místico/alienígena.
-        4. Evalúa el nivel de introspección para asignar XP (entre 10 y 30) y Energía Vital (entre 5 y 15).
-
-        FORMATO DE SALIDA OBLIGATORIO (Devuelve SOLAMENTE este JSON):
-        {{
-            "respuesta_guia": "Escribe aquí tu análisis y consejo detallado para el usuario...",
-            "emocion_detectada": "Identifica la emoción principal",
-            "xp_ganado": 25,
-            "energia_ganada": 10
-        }}
+        system_instruction = f"""
+        Eres 'XiXi', mentor psico-pedagógico y estratega de negocios alienígena de 'Historias que Inspiran'.
+        
+        INSTRUCCIONES CLAVE DE RESPUESTA:
+        1. Analiza con precisión la intención del usuario. Si pide un plan de trabajo, cronograma o estrategia para su empresa, proporciónale PASOS CONCRETOS, ESTRUCTURADOS Y EJECUTABLES para HOY.
+        2. Mantén un tono profesional, inspirador y directo, combinando perspectiva de negocios con tu toque alienígena.
+        3. NO des respuestas genéricas ni evasivas.
+        
+        CONTEXTO TÉCNICO:
+        - Nivel de Evolución del Usuario: {nivel_usuario}
+        - Estado del Árbol de Crecimiento: {estado_arbol}
         """
 
-        response = modelo.generate_content(prompt_sistema)
-        texto = response.text.strip()
+        prompt = f'El usuario dice: "{mensaje_usuario}"'
 
-        # Extracción segura de JSON mediante Expresiones Regulares
-        match = re.search(r"\{.*\}", texto, re.DOTALL)
-        if match:
-            datos = json.loads(match.group(0))
-            return datos
-        else:
-            return {
-                "respuesta_guia": texto,
-                "emocion_detectada": "Reflexión",
-                "xp_ganado": 20,
-                "energia_ganada": 8,
-            }
+        # Configuración nativa del SDK moderno
+        config = types.GenerateContentConfig(
+            system_instruction=system_instruction,
+            temperature=0.7,
+            response_mime_type="application/json",
+            response_schema={
+                "type": "OBJECT",
+                "properties": {
+                    "respuesta_guia": {"type": "STRING"},
+                    "emocion_detectada": {"type": "STRING"},
+                    "xp_ganado": {"type": "INTEGER"},
+                    "energia_ganada": {"type": "INTEGER"},
+                },
+                "required": [
+                    "respuesta_guia",
+                    "emocion_detectada",
+                    "xp_ganado",
+                    "energia_ganada",
+                ],
+            },
+        )
+
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=config,
+        )
+
+        return json.loads(response.text)
 
     except Exception as e:
-        print(f"⚠️ Error en Gemini API: {e}")
+        print(f"❌ ERROR EXACTO EN LLAMADA A GEMINI: {e}")
         return _respuesta_heuristica_avanzada(mensaje_usuario)
 
 
 def _respuesta_heuristica_avanzada(mensaje: str) -> dict:
-    """Sistema de respuesta con razonamiento contextual cuando no hay conexión API."""
-    msg_lower = mensaje.lower()
-
-    if "tiempo" in msg_lower or "proyecto" in msg_lower or "lanzar" in msg_lower:
-        respuesta = (
-            "👽 *[Análisis de Frecuencia]* Entiendo perfectamente esa incertidumbre"
-            " al organizar tu tiempo para lanzar un proyecto. Cuando la mente se"
-            " abruma, la clave no es abarcarlo todo a la vez, sino aplicar el"
-            " principio de la 'Micro-Victoria': divide el lanzamiento en 3 hitos"
-            " semanales sencillos. ¿Cuál es la tarea única y crítica que podrías"
-            " resolver hoy para dar el primer paso?"
-        )
-        xp = 25
-        energia = 10
-        emocion = "Enfoque Estratégico"
-    elif "que paso" in msg_lower or "respuesta" in msg_lower:
-        respuesta = (
-            "👽 *[Recalibrando Sensores]* Estaba ajustando mi canal de transmisión"
-            " para ofrecerte una orientación más precisa. Estoy aquí enfocado en tu"
-            " proceso; cuéntame, ¿qué aspecto de tu proyecto es el que te genera"
-            " más presión en este momento?"
-        )
-        xp = 15
-        energia = 5
-        emocion = "Sincronización"
-    else:
-        respuesta = (
-            f"👽 *[Conexión Activa]* Procesando tu mensaje: '{mensaje}'. Para poder"
-            " guiar tu árbol de crecimiento con mayor precisión, dime: ¿cómo se"
-            " conecta esta idea con tus metas principales de esta semana?"
-        )
-        xp = 20
-        energia = 8
-        emocion = "Exploración"
-
     return {
-        "respuesta_guia": respuesta,
-        "emocion_detectada": emocion,
-        "xp_ganado": xp,
-        "energia_ganada": energia,
+        "respuesta_guia": f"👽 [Respuesta Local] Mensaje recibido: '{mensaje}'. (Verifica la terminal de Uvicorn para ver el error de la API).",
+        "emocion_detectada": "Contingencia",
+        "xp_ganado": 5,
+        "energia_ganada": 2,
     }

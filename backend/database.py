@@ -2,10 +2,15 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from config import load_dotenv
+from dotenv import load_dotenv
 
-# Cargar variables del .env
-load_dotenv()
+# 1. Mapeo Lógico de la Ruta
+# Obtenemos la ruta absoluta de la carpeta donde está este archivo (backend)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+env_path = os.path.join(BASE_DIR, ".env")
+
+# 2. Cargar variables forzando la lectura en la ruta específica
+load_dotenv(dotenv_path=env_path)
 
 # Obtener URL de conexión desde el entorno (Local o Supabase Cloud)
 SQLALCHEMY_DATABASE_URL = os.getenv(

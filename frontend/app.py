@@ -7,8 +7,12 @@ from streamlit_lottie import st_lottie
 # Configuración de la página
 st.set_page_config(page_title="Historias que Inspiran®", page_icon="🌱", layout="wide")
 
-# Dirección base del Backend FastAPI
-API_URL = "https://historias-que-inspiran-api.onrender.com"
+# ==========================================
+# 📍 ENRUTAMIENTO DE ENTORNO (DEV)
+# Apuntamos a LOCALHOST para probar los cambios de Gemini
+# Cuando vayas a producción, cambias esto de nuevo a Render.
+# ==========================================
+API_URL = "http://127.0.0.1:8000"
 
 # Credenciales de Autologin para Desarrollo
 DEV_EMAIL = "lindley@historias.com"
@@ -64,7 +68,7 @@ if not st.session_state.token:
             st.rerun()
     except requests.exceptions.ConnectionError:
         st.error(
-            "⏳ El cerebro en Render se está despertando (Cold Start). Espera 30 segundos y recarga la página."
+            "⏳ El motor Uvicorn local está apagado. Enciende el servidor en la terminal con 'uvicorn backend.main:app --reload'."
         )
         st.stop()
     except Exception as e:
@@ -134,7 +138,7 @@ else:
     # ---------------------------------------------------------
     with st.sidebar:
         st.markdown("### 👤 Sesión de Usuario")
-        st.info(f"**ID:** `{usuario_id}`\n\n**Conexión:** `Supabase Realtime`")
+        st.info(f"**ID:** `{usuario_id}`\n\n**Conexión:** `Localhost Uvicorn`")
 
         if st.button("🚪 Cerrar Sesión"):
             st.session_state.pop("usuario_id", None)
@@ -448,7 +452,7 @@ else:
 
             with st.chat_message("assistant", avatar="👽"):
                 with st.spinner(
-                    "XiXi está decodificando tus frecuencias emocionales..."
+                    "XiXi está decodificando tus frecuencias con Gemini..."
                 ):
                     payload = {
                         "personaje": "xixi",
@@ -462,10 +466,20 @@ else:
                     )
 
                     if res_chat.status_code == 201:
-                        respuesta = res_chat.json()["respuesta_guia"]
-                        st.markdown(respuesta)
+                        # Extraer datos dinámicos generados por la IA en el backend
+                        datos = res_chat.json()
+                        respuesta = datos.get(
+                            "respuesta_guia", "Frecuencia interrumpida."
+                        )
+                        xp_ganado = datos.get("xp_ganado", 0)
+                        energia_ganada = datos.get("energia_ganada", 0)
+
+                        # Formato gamificado integrado al chat
+                        mensaje_formateado = f"{respuesta}\n\n*(XiXi ha canalizado **+{xp_ganado} XP** a tu Pasaporte y **+{energia_ganada} pts** a tu Energía Vital)*"
+
+                        st.markdown(mensaje_formateado)
                         st.session_state.messages.append(
-                            {"role": "assistant", "content": respuesta}
+                            {"role": "assistant", "content": mensaje_formateado}
                         )
                         st.rerun()
                     else:
