@@ -197,13 +197,14 @@ else:
     st.markdown("---")
 
     # ---------------------------------------------------------
-    # 1. VISOR GRÁFICO DEL ÁRBOL (MAPEO DE 10 FASES CON ÍCONOS DEDICADOS)
+    # 1. VISOR GRÁFICO DEL ÁRBOL (LOTTIE + TEXTOS)
     # ---------------------------------------------------------
     st.markdown("### 🌲 Bio-Estructura en Crecimiento")
     col_img, col_desc = st.columns([1, 4])
 
     estado_lower = estado_arbol.lower()
 
+    # Mapeo oficial: (URL_LOTTIE, TITULO, EMOCIONAL, MENTAL, SOCIAL, ESPIRITUAL, FRASE)
     mapeo_bio = {
         "semilla": (
             "https://lottie.host/8157854c-18e2-4553-af24-9adff0a34361/mAnIMaTIOn.json",
@@ -215,7 +216,7 @@ else:
             "Descubre quién soy y qué me hace único.",
         ),
         "brote_menor": (
-            "🌱",
+            "https://assets9.lottiefiles.com/packages/lf20_sprout_growing.json",
             "2. Brote Menor (Mis Primeros Pasos)",
             "Desarrolla la confianza y la alegría de aprender.",
             "Fortalece la atención y la memoria.",
@@ -224,7 +225,7 @@ else:
             "Exploro, juego y aprendo a conocer mi mundo.",
         ),
         "brote_explorador": (
-            "🍃",
+            "https://assets3.lottiefiles.com/packages/lf20_young_plant.json",
             "3. Brote Explorador (Descubro y Me Pregunto)",
             "Aumenta la autoestima y la curiosidad sana.",
             "Desarrolla el pensamiento lógico y la creatividad.",
@@ -233,7 +234,7 @@ else:
             "Hago preguntas, busco respuestas y entiendo más.",
         ),
         "arbol_joven_enraizado": (
-            "🪵",
+            "https://assets5.lottiefiles.com/packages/lf20_tree_roots.json",
             "4. Árbol Joven Enraizado (Construyo Mis Bases)",
             "Genera estabilidad emocional y autodisciplina.",
             "Organiza ideas y establece metas.",
@@ -242,7 +243,7 @@ else:
             "Formo hábitos, valores y una base sólida.",
         ),
         "arbol_joven_creativo": (
-            "🌳",
+            "https://assets1.lottiefiles.com/packages/lf20_creative_tree.json",
             "5. Árbol Joven Creativo (Creo y Transformo)",
             "Potencia la motivación y la expresión personal.",
             "Desarrolla la creatividad y la resolución de problemas.",
@@ -251,7 +252,7 @@ else:
             "Imagino, creo y doy vida a mis ideas.",
         ),
         "arbol_joven_empatico": (
-            "💜",
+            "https://assets4.lottiefiles.com/packages/lf20_purple_tree.json",
             "6. Árbol Joven Empático (Entiendo y Me Conecto)",
             "Profundiza la empatía y la inteligencia emocional.",
             "Amplía la visión y el pensamiento crítico.",
@@ -260,7 +261,7 @@ else:
             "Me pongo en el lugar del otro y construyo puentes.",
         ),
         "arbol_frondoso_lider": (
-            "🌲",
+            "https://assets10.lottiefiles.com/packages/lf20_big_green_tree.json",
             "7. Árbol Frondoso Líder (Guío e Inspiro)",
             "Fortalece la confianza y la madurez emocional.",
             "Toma decisiones con sabiduría y responsabilidad.",
@@ -269,7 +270,7 @@ else:
             "Lidero con el ejemplo y dejo huella positiva.",
         ),
         "arbol_frondoso_visionario": (
-            "🍂",
+            "https://assets8.lottiefiles.com/packages/lf20_golden_tree.json",
             "8. Árbol Frondoso Visionario (Sueño en Grande)",
             "Desarrolla resiliencia y determinación.",
             "Piensa en grande y anticipa soluciones innovadoras.",
@@ -278,7 +279,7 @@ else:
             "Tengo visión, planifico y transformo sueños en realidades.",
         ),
         "arbol_frondoso_sabio": (
-            "🌸",
+            "https://assets6.lottiefiles.com/packages/lf20_blossom_tree.json",
             "9. Árbol Frondoso Sabio (Comparto Mi Sabiduría)",
             "Refuerza la gratitud y la generosidad.",
             "Integra conocimiento y experiencia para guiar.",
@@ -287,7 +288,7 @@ else:
             "Enseño, acompaño y dejo legado a otros.",
         ),
         "arbol_cosmico": (
-            "✨",
+            "https://assets7.lottiefiles.com/packages/lf20_galaxy_cosmic_tree.json",
             "10. Árbol Cósmico (Unido al Universo)",
             "Alcanza la paz interior y plenitud del alma.",
             "Trasciende límites y comprende la verdad universal.",
@@ -297,10 +298,10 @@ else:
         ),
     }
 
-    icono_fase, titulo_fase, emo, men, soc, esp, frase = mapeo_bio.get(
+    url_anim, titulo_fase, emo, men, soc, esp, frase = mapeo_bio.get(
         estado_lower,
         (
-            "🟡",
+            "https://lottie.host/8157854c-18e2-4553-af24-9adff0a34361/mAnIMaTIOn.json",
             "1. Semilla (El Inicio de Todo)",
             "Despertar la curiosidad y la seguridad básica.",
             "Abre la mente al aprendizaje y la exploración.",
@@ -310,17 +311,27 @@ else:
         ),
     )
 
+    # Intentar descargar el JSON de la animación
+    animacion_json = cargar_lottie(url_anim)
+
+    # COLUMNA IZQUIERDA: ANIMACIÓN LOTTIE Y ENERGÍA VITAL
     with col_img:
+        if animacion_json:
+            st_lottie(animacion_json, height=140, key=f"anim_{estado_lower}")
+        else:
+            # Si no carga la animación, poner emoji estático limpio
+            st.markdown(
+                "<h1 style='text-align: center; font-size: 70px; margin: 0;'>🌱</h1>",
+                unsafe_allow_html=True,
+            )
+
         st.markdown(
-            f"<h1 style='text-align: center; font-size: 85px; margin: 0;'>{icono_fase}</h1>",
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            f"<p style='text-align: center; font-size: 14px; color: #4CAF50; font-weight: bold; margin-top: 0px;'>"
+            f"<p style='text-align: center; font-size: 14px; color: #4CAF50; font-weight: bold; margin-top: 5px;'>"
             f"⚡ Energía Vital<br><span style='font-size: 18px;'>{energia_vital} pts</span></p>",
             unsafe_allow_html=True,
         )
 
+    # COLUMNA DERECHA: FRANJA AZUL MULTIDIMENSIONAL
     with col_desc:
         contenido_tarjeta = f"""
         ### 📍 **Fase Actual: {titulo_fase}**
