@@ -368,14 +368,41 @@ else:
     col1, col2 = st.columns(2)
 
     with col1:
-        escalones = "🪜 " * nivel_actual
         st.markdown("### 🎓 Pasaporte de Nivel")
+
+        # --- CÁLCULO MATEMÁTICO DE PROGRESO DE NIVEL ---
+        # Definimos los umbrales de XP según nuestra regla de negocio
+        umbrales_xp = [0, 100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500, 5500]
+
+        nivel_idx = min(nivel_actual, len(umbrales_xp) - 1)
+        xp_inicio_nivel = umbrales_xp[nivel_idx - 1] if nivel_idx > 0 else 0
+        xp_meta_siguiente = (
+            umbrales_xp[nivel_idx] if nivel_idx < len(umbrales_xp) else umbrales_xp[-1]
+        )
+
+        # Puntos ganados dentro del nivel presente
+        xp_nivel_actual = max(0, xp_actual - xp_inicio_nivel)
+        xp_requeridos_nivel = max(1, xp_meta_siguiente - xp_inicio_nivel)
+
+        # Porcentaje para la barra (entre 0.0 y 1.0)
+        porcentaje_progreso = min(1.0, max(0.0, xp_nivel_actual / xp_requeridos_nivel))
+
+        # --- DESPLIEGUE VISUAL ---
         st.metric(
             label="Ascenso de Nivel",
             value=f"Nivel {nivel_actual}",
             delta=f"{xp_actual} XP Totales",
         )
+
+        # Escalera gráfica de emoticonos
+        escalones = "🪜 " * nivel_actual
         st.write(f"**Escalera de Progreso:** {escalones} 🧗")
+
+        # Barra de progreso visual dinámico
+        st.progress(porcentaje_progreso)
+        st.caption(
+            f"🚀 Progreso de Nivel: **{int(porcentaje_progreso * 100)}%** ({xp_nivel_actual}/{xp_requeridos_nivel} XP para Nivel {nivel_actual + 1})"
+        )
 
     with col2:
         total_paginas = 5
