@@ -6,7 +6,7 @@ from pydantic import BaseModel
 import random
 
 # Imports del paquete local backend
-from . import models, schemas, crud, security, ia_service
+from backend import models, schemas, crud, security, ia_service
 from .database import engine, get_db
 
 # Inicialización de la base de datos

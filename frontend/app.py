@@ -12,7 +12,9 @@ st.set_page_config(page_title="Historias que Inspiran®", page_icon="🌱", layo
 # Apuntamos a LOCALHOST para probar los cambios de Gemini
 # Cuando vayas a producción, cambias esto de nuevo a Render.
 # ==========================================
-API_URL = "http://127.0.0.1:8000"
+# Por esto:
+# API_URL = "http://127.0.0.1:8000" # Borra o comenta la local
+API_URL = "https://historias-que-inspiran-api.onrender.com"  # Activa la web
 
 # Credenciales de Autologin para Desarrollo
 DEV_EMAIL = "lindley@historias.com"
