@@ -1,5 +1,7 @@
 import streamlit as st
 import requests
+import json
+import os
 from streamlit_lottie import st_lottie
 
 # Configuración de la página
@@ -25,18 +27,14 @@ if "messages" not in st.session_state:
 # FUNCIONES AUXILIARES GLOBALES
 # ---------------------------------------------------------
 @st.cache_data(show_spinner=False)
-def cargar_lottie_url(url: str):
-    """Carga y valida un archivo JSON de Lottie desde una URL con protección anti-bloqueo."""
-    if not url or not isinstance(url, str):
-        return None
-    try:
-        # Se añaden cabeceras para evitar que el CDN rechace la conexión (Error 403)
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-        r = requests.get(url, headers=headers, timeout=5)
-        if r.status_code == 200:
-            return r.json()
-    except Exception:
-        pass
+def cargar_lottie_local(filepath: str):
+    """Carga una animación Lottie directamente desde un archivo físico local."""
+    if os.path.exists(filepath):
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return None
     return None
 
 
@@ -201,18 +199,17 @@ else:
     st.markdown("---")
 
     # ---------------------------------------------------------
-    # 1. VISOR GRÁFICO DEL ÁRBOL (ANIMACIONES LOTTIE GARANTIZADAS)
+    # 1. VISOR GRÁFICO DEL ÁRBOL (CARGA LOCAL)
     # ---------------------------------------------------------
     st.markdown("### 🌲 Bio-Estructura en Crecimiento")
     col_img, col_desc = st.columns([1, 4])
 
-    # Normalización del estado para evitar errores de espacios o mayúsculas
     estado_limpio = estado_arbol.strip().lower()
 
-    # Mapeo con enlaces activos y probados en lottie.host
+    # Mapeo con archivos físicos locales
     mapeo_bio = {
         "semilla": (
-            "https://lottie.host/8157854c-18e2-4553-af24-9adff0a34361/mAnIMaTIOn.json",
+            "frontend/assets/semilla.json",
             "1. Semilla (El Inicio de Todo)",
             "Despertar la curiosidad y la seguridad básica.",
             "Abre la mente al aprendizaje y la exploración.",
@@ -221,7 +218,7 @@ else:
             "Descubre quién soy y qué me hace único.",
         ),
         "brote_menor": (
-            "https://lottie.host/5b2e5a1a-41f2-4977-8c38-8e6822c60e3a/f290L2R8Q1.json",
+            "frontend/assets/brote_menor.json",
             "2. Brote Menor (Mis Primeros Pasos)",
             "Desarrolla la confianza y la alegría de aprender.",
             "Fortalece la atención y la memoria.",
@@ -230,7 +227,7 @@ else:
             "Exploro, juego y aprendo a conocer mi mundo.",
         ),
         "brote_explorador": (
-            "https://lottie.host/82d9212c-5b23-45a8-9d82-8418ffed43b2/9ZpZJzW3O0.json",
+            "frontend/assets/brote_explorador.json",
             "3. Brote Explorador (Descubro y Me Pregunto)",
             "Aumenta la autoestima y la curiosidad sana.",
             "Desarrolla el pensamiento lógico y la creatividad.",
@@ -239,7 +236,7 @@ else:
             "Hago preguntas, busco respuestas y entiendo más.",
         ),
         "arbol_joven_enraizado": (
-            "https://lottie.host/a6133a88-82bc-4402-9a00-1c94411fb2d0/9ZpZJzW3O0.json",
+            "frontend/assets/arbol_joven_enraizado.json",
             "4. Árbol Joven Enraizado (Construyo Mis Bases)",
             "Genera estabilidad emocional y autodisciplina.",
             "Organiza ideas y establece metas.",
@@ -248,7 +245,7 @@ else:
             "Formo hábitos, valores y una base sólida.",
         ),
         "arbol_joven_creativo": (
-            "https://lottie.host/82d9212c-5b23-45a8-9d82-8418ffed43b2/9ZpZJzW3O0.json",
+            "frontend/assets/arbol_joven_creativo.json",
             "5. Árbol Joven Creativo (Creo y Transformo)",
             "Potencia la motivación y la expresión personal.",
             "Desarrolla la creatividad y la resolución de problemas.",
@@ -257,7 +254,7 @@ else:
             "Imagino, creo y doy vida a mis ideas.",
         ),
         "arbol_joven_empatico": (
-            "https://lottie.host/5b2e5a1a-41f2-4977-8c38-8e6822c60e3a/f290L2R8Q1.json",
+            "frontend/assets/arbol_joven_empatico.json",
             "6. Árbol Joven Empático (Entiendo y Me Conecto)",
             "Profundiza la empatía y la inteligencia emocional.",
             "Amplía la visión y el pensamiento crítico.",
@@ -266,7 +263,7 @@ else:
             "Me pongo en el lugar del otro y construyo puentes.",
         ),
         "arbol_frondoso_lider": (
-            "https://lottie.host/a6133a88-82bc-4402-9a00-1c94411fb2d0/9ZpZJzW3O0.json",
+            "frontend/assets/arbol_frondoso_lider.json",
             "7. Árbol Frondoso Líder (Guío e Inspiro)",
             "Fortalece la confianza y la madurez emocional.",
             "Toma decisiones con sabiduría y responsabilidad.",
@@ -275,7 +272,7 @@ else:
             "Lidero con el ejemplo y dejo huella positiva.",
         ),
         "arbol_frondoso_visionario": (
-            "https://lottie.host/8157854c-18e2-4553-af24-9adff0a34361/mAnIMaTIOn.json",
+            "frontend/assets/arbol_frondoso_visionario.json",
             "8. Árbol Frondoso Visionario (Sueño en Grande)",
             "Desarrolla resiliencia y determinación.",
             "Piensa en grande y anticipa soluciones innovadoras.",
@@ -284,7 +281,7 @@ else:
             "Tengo visión, planifico y transformo sueños en realidades.",
         ),
         "arbol_frondoso_sabio": (
-            "https://lottie.host/82d9212c-5b23-45a8-9d82-8418ffed43b2/9ZpZJzW3O0.json",
+            "frontend/assets/arbol_frondoso_sabio.json",
             "9. Árbol Frondoso Sabio (Comparto Mi Sabiduría)",
             "Refuerza la gratitud y la generosidad.",
             "Integra conocimiento y experiencia para guiar.",
@@ -293,7 +290,7 @@ else:
             "Enseño, acompaño y dejo legado a otros.",
         ),
         "arbol_cosmico": (
-            "https://lottie.host/a6133a88-82bc-4402-9a00-1c94411fb2d0/9ZpZJzW3O0.json",
+            "frontend/assets/arbol_cosmico.json",
             "10. Árbol Cósmico (Unido al Universo)",
             "Alcanza la paz interior y plenitud del alma.",
             "Trasciende límites y comprende la verdad universal.",
@@ -303,10 +300,10 @@ else:
         ),
     }
 
-    url_anim, titulo_fase, emo, men, soc, esp, frase = mapeo_bio.get(
+    ruta_anim, titulo_fase, emo, men, soc, esp, frase = mapeo_bio.get(
         estado_limpio,
         (
-            "https://lottie.host/8157854c-18e2-4553-af24-9adff0a34361/mAnIMaTIOn.json",
+            "frontend/assets/semilla.json",
             "1. Semilla (El Inicio de Todo)",
             "Despertar la curiosidad y la seguridad básica.",
             "Abre la mente al aprendizaje y la exploración.",
@@ -316,15 +313,15 @@ else:
         ),
     )
 
-    # Cargar animación Lottie de forma robusta
-    animacion_json = cargar_lottie_url(url_anim)
+    # Cargar animación Lottie de forma local
+    animacion_json = cargar_lottie_local(ruta_anim)
 
     # COLUMNA IZQUIERDA: RENDERIZADO DINÁMICO Y FALLBACK
     with col_img:
         if animacion_json:
             st_lottie(animacion_json, height=140, key=f"lottie_view_{estado_limpio}")
         else:
-            # Diccionario integral de emojis en caso de que LottieFiles falle o no haya internet
+            # Fallback a emojis si el archivo JSON no está descargado aún
             emojis_fase = {
                 "semilla": "🟡",
                 "brote_menor": "🌱",
