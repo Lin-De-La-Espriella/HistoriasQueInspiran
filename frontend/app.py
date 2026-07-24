@@ -207,7 +207,7 @@ else:
     mapeo_bio = {
         "semilla": (
             "🟡",
-            "1. Semilla (El Inicio de Todo)",https://lottie.host/8157854c-18e2-4553-af24-9adff0a34361/mAnIMaTIOn.json,
+            "1. Semilla (El Inicio de Todo)","https://lottie.host/8157854c-18e2-4553-af24-9adff0a34361/mAnIMaTIOn.json",
             "Despertar la curiosidad y la seguridad básica.",
             "Abre la mente al aprendizaje y la exploración.",
             "Comienzo a reconocer mi lugar en el mundo.",
