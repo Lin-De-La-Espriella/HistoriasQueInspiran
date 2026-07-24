@@ -8,12 +8,8 @@ from streamlit_lottie import st_lottie
 st.set_page_config(page_title="Historias que Inspiran®", page_icon="🌱", layout="wide")
 
 # ==========================================
-# 📍 ENRUTAMIENTO DE ENTORNO (DEV)
-# Apuntamos a LOCALHOST para probar los cambios de Gemini
-# Cuando vayas a producción, cambias esto de nuevo a Render.
+# 📍 ENRUTAMIENTO DE ENTORNO
 # ==========================================
-# Por esto:
-# API_URL = "http://127.0.0.1:8000" # Borra o comenta la local
 API_URL = "https://historias-que-inspiran-api.onrender.com"  # Activa la web
 
 # Credenciales de Autologin para Desarrollo
@@ -46,38 +42,28 @@ def cargar_lottie_local(filepath: str):
 
 def autenticar_usuario(email, password):
     """Función auxiliar para solicitar el token e identificar al usuario."""
-    response = requests.post(
-        f"{API_URL}/token", data={"username": email, "password": password}
-    )
-    if response.status_code == 200:
-        data = response.json()
-        st.session_state.token = data["access_token"]
-
-        res_users = requests.get(f"{API_URL}/usuarios/")
-        if res_users.status_code == 200:
-            usuarios = res_users.json()
-            user_obj = next((u for u in usuarios if u["email"] == email), None)
-            if user_obj:
-                st.session_state.usuario_id = user_obj["id"]
-        return True
-    return False
-
-
-# Autologin automático y Control de Render
-if not st.session_state.token:
     try:
-        if autenticar_usuario(DEV_EMAIL, DEV_PASS):
-            st.rerun()
-    except requests.exceptions.ConnectionError:
-        st.error(
-            "⏳ El motor Uvicorn local está apagado. Enciende el servidor en la terminal con 'uvicorn backend.main:app --reload'."
+        response = requests.post(
+            f"{API_URL}/token", data={"username": email, "password": password}
         )
-        st.stop()
-    except Exception as e:
-        st.error(f"⚠️ Error de conexión: {e}")
-        st.stop()
+        if response.status_code == 200:
+            data = response.json()
+            st.session_state.token = data["access_token"]
 
-# Estilos CSS Personalizados para la Ventana Flotante de XiXi
+            res_users = requests.get(f"{API_URL}/usuarios/")
+            if res_users.status_code == 200:
+                usuarios = res_users.json()
+                user_obj = next((u for u in usuarios if u["email"] == email), None)
+                if user_obj:
+                    st.session_state.usuario_id = user_obj["id"]
+            return True
+        return False
+    except requests.exceptions.ConnectionError:
+        st.error("⏳ No se pudo conectar con el servidor (Render / Localhost).")
+        return False
+
+
+# Estilos CSS Personalizados
 st.markdown(
     """
     <style>
@@ -106,44 +92,72 @@ st.markdown(
 st.title("🌱 Historias que Inspiran®")
 st.subheader("Plataforma EdTech Gamificada")
 
-# Manejador del Estado Vacío de la Base de Datos
+# =========================================================
+# RUTEO PRINCIPAL: NO AUTENTICADO vs AUTENTICADO
+# =========================================================
 if not st.session_state.token:
-    st.warning(
-        "⚠️ Base de datos en la nube conectada, pero se encuentra en blanco. No existe el usuario maestro."
-    )
-    if st.button("🚀 Inyectar Usuario de Desarrollo en Supabase"):
-        payload = {
-            "email": DEV_EMAIL,
-            "nombre": "Administrador (Nube)",
-            "password": DEV_PASS,
-        }
-        res_crear = requests.post(f"{API_URL}/usuarios/", json=payload)
+    # --- MENÚ LATERAL PARA VISITANTES ---
+    with st.sidebar:
+        st.title("Navegación")
+        modo = st.radio(
+            "Selecciona una opción:",
+            ["Iniciar Sesión", "Estado del Sistema (DEV)"],
+        )
 
-        if res_crear.status_code in [200, 201]:
-            st.success("¡Estructura base inicializada! Reiniciando interfaz...")
-            st.rerun()
-        else:
-            st.error(f"Error de inyección: {res_crear.text}")
+    # --- PANTALLA DE INICIO DE SESIÓN ---
+    if modo == "Iniciar Sesión":
+        st.markdown("### 🔑 Acceso a la Plataforma")
+        email = st.text_input("Correo Electrónico")
+        password = st.text_input("Contraseña", type="password")
+
+        if st.button("Ingresar"):
+            if autenticar_usuario(email, password):
+                st.success("¡Acceso concedido! Sincronizando biometría...")
+                st.rerun()
+            else:
+                st.error("Credenciales incorrectas. Inténtalo de nuevo.")
+
+    # --- PANTALLA DE INYECCIÓN DE DATOS (Mantenimiento) ---
+    elif modo == "Estado del Sistema (DEV)":
+        st.warning("⚠️ Módulo de diagnóstico de Base de Datos")
+        st.info(
+            "Utiliza esta opción únicamente si la base de datos de Render/Supabase está completamente en blanco."
+        )
+
+        if st.button("🚀 Inyectar Usuario de Desarrollo en Supabase"):
+            payload = {
+                "email": DEV_EMAIL,
+                "nombre": "Administrador (Nube)",
+                "password": DEV_PASS,
+            }
+            try:
+                res_crear = requests.post(f"{API_URL}/usuarios/", json=payload)
+                if res_crear.status_code in [200, 201]:
+                    st.success(
+                        "¡Estructura base inicializada correctamente! Ve a Iniciar Sesión."
+                    )
+                else:
+                    st.error(f"Error de inyección: {res_crear.text}")
+            except Exception as e:
+                st.error(f"Fallo crítico de conexión: {e}")
+
 else:
+    # =========================================================
+    # PANEL DE CONTROL (USUARIO AUTENTICADO)
+    # =========================================================
     headers = {"Authorization": f"Bearer {st.session_state.token}"}
     usuario_id = st.session_state.usuario_id or 1
 
-    st.sidebar.success("🔑 Sesión Autenticada (DEV)")
-    if st.sidebar.button("Cerrar Sesión"):
-        st.session_state.token = None
-        st.session_state.usuario_id = None
-        st.session_state.messages = []
-        st.rerun()
-
-    # ---------------------------------------------------------
-    # BARRA LATERAL (SIDEBAR) - PANEL DE CONTROL Y DEV TOOLS
-    # ---------------------------------------------------------
+    # --- BARRA LATERAL DEL SISTEMA ---
     with st.sidebar:
+        st.success("🔑 Sesión Autenticada")
         st.markdown("### 👤 Sesión de Usuario")
-        st.info(f"**ID:** `{usuario_id}`\n\n**Conexión:** `Localhost Uvicorn`")
+        st.info(f"**ID:** `{usuario_id}`\n\n**Conexión:** `Render Nube`")
 
         if st.button("🚪 Cerrar Sesión"):
-            st.session_state.pop("usuario_id", None)
+            st.session_state.token = None
+            st.session_state.usuario_id = None
+            st.session_state.messages = []
             st.rerun()
 
         st.markdown("---")
@@ -178,9 +192,7 @@ else:
                 del st.session_state["estado_arbol_override"]
                 st.rerun()
 
-    # ---------------------------------------------------------
-    # OBTENCIÓN DE DATOS REALES DE LA BASE DE DATOS
-    # ---------------------------------------------------------
+    # --- OBTENCIÓN DE DATOS REALES ---
     res_users = requests.get(f"{API_URL}/usuarios/", headers=headers)
     user_data = None
     if res_users.status_code == 200:
@@ -198,21 +210,17 @@ else:
     capitulo_actual = libro.get("capitulo_actual", 1)
     paginas_completadas = libro.get("paginas_completadas", 1)
 
-    # Prioridad de simulación DEV
     if "estado_arbol_override" in st.session_state:
         estado_arbol = st.session_state["estado_arbol_override"]
 
     st.markdown("---")
 
-    # ---------------------------------------------------------
-    # 1. VISOR GRÁFICO DEL ÁRBOL (CARGA LOCAL)
-    # ---------------------------------------------------------
+    # --- 1. VISOR GRÁFICO DEL ÁRBOL ---
     st.markdown("### 🌲 Bio-Estructura en Crecimiento")
     col_img, col_desc = st.columns([1, 4])
 
     estado_limpio = estado_arbol.strip().lower()
 
-    # Mapeo con archivos físicos locales
     mapeo_bio = {
         "semilla": (
             "frontend/assets/semilla.json",
@@ -274,7 +282,7 @@ else:
             "Fortalece la confianza y la madurez emocional.",
             "Toma decisiones con sabiduría y responsabilidad.",
             "Influye positivamente en su comunidad.",
-            "Usa su luz para servir y transformar entornos.",
+            "Usa su luz para servir y transformo entornos.",
             "Lidero con el ejemplo y dejo huella positiva.",
         ),
         "arbol_frondoso_visionario": (
@@ -307,27 +315,15 @@ else:
     }
 
     ruta_anim, titulo_fase, emo, men, soc, esp, frase = mapeo_bio.get(
-        estado_limpio,
-        (
-            "frontend/assets/semilla.json",
-            "1. Semilla (El Inicio de Todo)",
-            "Despertar la curiosidad y la seguridad básica.",
-            "Abre la mente al aprendizaje y la exploración.",
-            "Comienzo a reconocer mi lugar en el mundo.",
-            "Conecta con su esencia y propósito personal.",
-            "Descubre quién soy y qué me hace único.",
-        ),
+        estado_limpio, mapeo_bio["semilla"]
     )
 
-    # Cargar animación Lottie de forma local
     animacion_json = cargar_lottie_local(ruta_anim)
 
-    # COLUMNA IZQUIERDA: RENDERIZADO DINÁMICO Y FALLBACK
     with col_img:
         if animacion_json:
             st_lottie(animacion_json, height=140, key=f"lottie_view_{estado_limpio}")
         else:
-            # Fallback a emojis si el archivo JSON no está descargado aún
             emojis_fase = {
                 "semilla": "🟡",
                 "brote_menor": "🌱",
@@ -352,7 +348,6 @@ else:
             unsafe_allow_html=True,
         )
 
-    # COLUMNA DERECHA: FRANJA AZUL MULTIDIMENSIONAL
     with col_desc:
         contenido_tarjeta = f"""
         ### 📍 **Fase Actual: {titulo_fase}**
@@ -368,27 +363,21 @@ else:
 
     st.markdown("---")
 
-    # ---------------------------------------------------------
-    # 2. INDICADORES VISUALES: ESCALERA DE NIVEL Y LIBRO CON HOJAS
-    # ---------------------------------------------------------
+    # --- 2. INDICADORES VISUALES ---
     col1, col2 = st.columns(2)
 
     with col1:
         st.markdown("### 🎓 Pasaporte de Nivel")
 
-        # --- CÁLCULO MATEMÁTICO PRECISO (REGLA: Nivel N empieza en (N-1)*100 XP) ---
         xp_inicio_nivel = (nivel_actual - 1) * 100
         xp_meta_siguiente = nivel_actual * 100
 
-        # Puntos dentro del nivel actual y los que faltan
         xp_nivel_actual = max(0, xp_actual - xp_inicio_nivel)
-        xp_requeridos_nivel = xp_meta_siguiente - xp_inicio_nivel  # Siempre 100 XP
+        xp_requeridos_nivel = xp_meta_siguiente - xp_inicio_nivel
         xp_faltantes = max(0, xp_meta_siguiente - xp_actual)
 
-        # Porcentaje exacto para la barra (entre 0.0 y 1.0)
         porcentaje_progreso = min(1.0, max(0.0, xp_nivel_actual / xp_requeridos_nivel))
 
-        # --- DESPLIEGUE VISUAL ---
         st.metric(
             label="Ascenso de Nivel",
             value=f"Nivel {nivel_actual}",
@@ -398,10 +387,8 @@ else:
         escalones = "🪜 " * nivel_actual
         st.write(f"**Escalera de Progreso:** {escalones} 🧗")
 
-        # Barra de progreso Streamlit
         st.progress(porcentaje_progreso)
 
-        # Texto HTML Personalizado: Blanco puro (#FFFFFF), fuente de 16px y negrita
         st.markdown(
             f"""
             <p style='color: #FFFFFF; font-size: 16px; font-weight: bold; margin-top: 8px;'>
@@ -426,14 +413,12 @@ else:
 
     st.markdown("---")
 
-    # PESTAÑAS DE INTERACCIÓN
+    # --- PESTAÑAS DE INTERACCIÓN ---
     tab_chat, tab_misiones = st.tabs(
         ["👽 Contactar a XiXi", "🎯 Misiones de Evolución"]
     )
 
-    # ---------------------------------------------------------
-    # TAB 1: CHAT CON XIXI
-    # ---------------------------------------------------------
+    # --- TAB 1: CHAT CON XIXI ---
     with tab_chat:
         st.markdown("#### Frecuencia de Comunicación Alienígena Abierta")
         st.caption("XiXi está en línea decodificando tu proceso en tiempo real.")
@@ -468,7 +453,6 @@ else:
                     )
 
                     if res_chat.status_code == 201:
-                        # Extraer datos dinámicos generados por la IA en el backend
                         datos = res_chat.json()
                         respuesta = datos.get(
                             "respuesta_guia", "Frecuencia interrumpida."
@@ -476,7 +460,6 @@ else:
                         xp_ganado = datos.get("xp_ganado", 0)
                         energia_ganada = datos.get("energia_ganada", 0)
 
-                        # Formato gamificado integrado al chat
                         mensaje_formateado = f"{respuesta}\n\n*(XiXi ha canalizado **+{xp_ganado} XP** a tu Pasaporte y **+{energia_ganada} pts** a tu Energía Vital)*"
 
                         st.markdown(mensaje_formateado)
@@ -487,9 +470,7 @@ else:
                     else:
                         st.error("Anomalía detectada. No se pudo enlazar con XiXi.")
 
-    # ---------------------------------------------------------
-    # TAB 2: MISIONES
-    # ---------------------------------------------------------
+    # --- TAB 2: MISIONES ---
     with tab_misiones:
         st.markdown("#### Desafíos de Sincronización")
 

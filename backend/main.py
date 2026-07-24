@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from typing import List
 from pydantic import BaseModel
 import random
-
 # Imports directos (compatibles con Root Directory = backend en Render y ejecución local)
 import models
 import schemas
