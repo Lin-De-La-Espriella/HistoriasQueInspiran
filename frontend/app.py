@@ -24,11 +24,15 @@ if "messages" not in st.session_state:
 # ---------------------------------------------------------
 # FUNCIONES AUXILIARES GLOBALES
 # ---------------------------------------------------------
-@st.cache_data
-def cargar_lottie(url: str):
-    """Carga y almacena en caché animaciones Lottie desde una URL."""
+@st.cache_data(show_spinner=False)
+def cargar_lottie_url(url: str):
+    """Carga y valida un archivo JSON de Lottie desde una URL con protección anti-bloqueo."""
+    if not url or not isinstance(url, str):
+        return None
     try:
-        r = requests.get(url, timeout=5)
+        # Se añaden cabeceras para evitar que el CDN rechace la conexión (Error 403)
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        r = requests.get(url, headers=headers, timeout=5)
         if r.status_code == 200:
             return r.json()
     except Exception:
@@ -202,7 +206,8 @@ else:
     st.markdown("### 🌲 Bio-Estructura en Crecimiento")
     col_img, col_desc = st.columns([1, 4])
 
-    estado_lower = estado_arbol.lower()
+    # Normalización del estado para evitar errores de espacios o mayúsculas
+    estado_limpio = estado_arbol.strip().lower()
 
     # Mapeo con enlaces activos y probados en lottie.host
     mapeo_bio = {
@@ -299,7 +304,7 @@ else:
     }
 
     url_anim, titulo_fase, emo, men, soc, esp, frase = mapeo_bio.get(
-        estado_lower,
+        estado_limpio,
         (
             "https://lottie.host/8157854c-18e2-4553-af24-9adff0a34361/mAnIMaTIOn.json",
             "1. Semilla (El Inicio de Todo)",
@@ -311,16 +316,15 @@ else:
         ),
     )
 
-    # Cargar animación Lottie
-    animacion_json = cargar_lottie(url_anim)
+    # Cargar animación Lottie de forma robusta
+    animacion_json = cargar_lottie_url(url_anim)
 
-    # COLUMNA IZQUIERDA: RENDERIZADO DINÁMICO
+    # COLUMNA IZQUIERDA: RENDERIZADO DINÁMICO Y FALLBACK
     with col_img:
         if animacion_json:
-            # El key incluye el nombre de la fase para forzar el refresco visual en Streamlit
-            st_lottie(animacion_json, height=140, key=f"lottie_view_{estado_lower}")
+            st_lottie(animacion_json, height=140, key=f"lottie_view_{estado_limpio}")
         else:
-            # Fallback visual usando el ícono emoji correspondiente si falla la red
+            # Diccionario integral de emojis en caso de que LottieFiles falle o no haya internet
             emojis_fase = {
                 "semilla": "🟡",
                 "brote_menor": "🌱",
@@ -333,7 +337,7 @@ else:
                 "arbol_frondoso_sabio": "🌸",
                 "arbol_cosmico": "✨",
             }
-            icono_fallback = emojis_fase.get(estado_lower, "🌱")
+            icono_fallback = emojis_fase.get(estado_limpio, "🌱")
             st.markdown(
                 f"<h1 style='text-align: center; font-size: 75px; margin: 0;'>{icono_fallback}</h1>",
                 unsafe_allow_html=True,
