@@ -2,7 +2,7 @@ import json
 import os
 import re
 from dotenv import load_dotenv
-import google.generativeai as genai
+from google import genai
 
 load_dotenv()
 
@@ -11,20 +11,22 @@ def generar_analisis_xixi(
     mensaje_usuario: str, estado_arbol: str, nivel_usuario: int
 ) -> dict:
     """
-    Motor de IA de XiXi utilizando el SDK estable y el alias de modelo 'gemini-pro'.
+    Motor de IA de XiXi utilizando el SDK oficial y moderno 'google-genai'
+    con el modelo 'gemini-2.0-flash'.
     """
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
 
     if not api_key:
         return {
-            "respuesta_guia": "⚠️ Error de Configuración: La variable 'GEMINI_API_KEY' no fue encontrada en las variables de entorno de Render.",
+            "respuesta_guia": "⚠️ Error de Configuración: La variable 'GEMINI_API_KEY' no fue encontrada en el entorno de Render.",
             "emocion_detectada": "Configuración Requerida",
             "xp_ganado": 5,
             "energia_ganada": 2,
         }
 
     try:
-        genai.configure(api_key=api_key)
+        # Inicialización del cliente oficial moderno
+        client = genai.Client(api_key=api_key)
 
         prompt_sistema = f"""
         Eres 'XiXi', mentor alienígena y estratega de negocios de 'Historias que Inspiran'.
@@ -41,14 +43,18 @@ def generar_analisis_xixi(
 
         CONTEXTO:
         - Nivel Usuario: {nivel_usuario} | Fase Árbol: {estado_arbol}
-        - Mensaje: {mensaje_usuario}
+        - Mensaje del Usuario: {mensaje_usuario}
         """
 
-        # Cambio CLAVE: Usamos el alias universal 'gemini-pro' para evitar el Error 404
-        model = genai.GenerativeModel("gemini-pro")
-        response = model.generate_content(prompt_sistema)
+        # Generación con el modelo moderno de producción
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt_sistema,
+        )
+
         texto_respuesta = response.text.strip()
 
+        # Extracción limpia de JSON
         match = re.search(r"\{.*\}", texto_respuesta, re.DOTALL)
         if match:
             return json.loads(match.group(0))
@@ -62,9 +68,9 @@ def generar_analisis_xixi(
 
     except Exception as e:
         error_detallado = str(e)
-        print(f"❌ Error en Gemini API: {error_detallado}")
+        print(f"❌ Error en Gemini GenAI API: {error_detallado}")
         return {
-            "respuesta_guia": f"⚠️ Fallo de Conexión Gemini: [{error_detallado}]",
+            "respuesta_guia": f"⚠️ Fallo de Conexión Gemini GenAI: [{error_detallado}]",
             "emocion_detectada": "Diagnóstico de Red",
             "xp_ganado": 10,
             "energia_ganada": 5,
