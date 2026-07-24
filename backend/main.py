@@ -9,6 +9,8 @@ import crud
 import security
 import ia_service
 from database import engine, get_db
+from pydantic import BaseModel
+import random
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -256,7 +258,6 @@ def escribir_pagina_libro(
 
 @app.post(
     "/usuarios/{usuario_id}/interacciones/",
-    response_model=schemas.InteraccionRespuesta,
     status_code=status.HTTP_201_CREATED,
     tags=["Guías IA"],
 )
@@ -266,6 +267,10 @@ def guardar_interaccion(
     db: Session = Depends(get_db),
     usuario_actual: dict = Depends(security.obtener_usuario_actual),
 ):
+    """
+    Motor Psico-Pedagógico de XiXi:
+    Analiza la interacción, asigna recompensas y evalúa el ecosistema.
+    """
     # 1. Obtener el contexto del usuario
     db_usuario = (
         db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
@@ -273,28 +278,48 @@ def guardar_interaccion(
     if not db_usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
-    estado_arbol = (
-        db_usuario.arbol.estado_crecimiento if db_usuario.arbol else "semilla"
-    )
-    nivel_usuario = db_usuario.pasaporte.nivel_actual if db_usuario.pasaporte else 1
+    mensaje = interaccion.mensaje_usuario.strip()
+    longitud_palabras = len(mensaje.split())
 
-    # 2. Generar respuesta con Gemini (XiXi)
-    if interaccion.personaje.lower() == "xixi":
-        respuesta_ia = ia_service.generar_respuesta_xixi(
-            mensaje_usuario=interaccion.mensaje_usuario,
-            estado_arbol=estado_arbol,
-            nivel_usuario=nivel_usuario,
+    xp_ganado = 0
+    energia_ganada = 0
+
+    # 2. Lógica Heurística Base para XiXi
+    if longitud_palabras > 8:
+        xp_ganado = 25
+        energia_ganada = 10
+        respuesta_xixi = (
+            f"👽 *[Frecuencia Sincronizada]* Siento la resonancia de tus palabras. "
+            f"Expresar lo que piensas con tal claridad fortalece tus raíces. "
+            f"He canalizado +{xp_ganado} XP a tu Pasaporte y +{energia_ganada} pts a tu Energía Vital."
         )
-        interaccion.respuesta_guia = respuesta_ia
-    elif not interaccion.respuesta_guia:
-        interaccion.respuesta_guia = "Aún estoy decodificando la señal..."
+    else:
+        xp_ganado = 10
+        energia_ganada = 5
+        respuesta_xixi = (
+            f"👽 Te escucho en la órbita. Cuéntame un poco más sobre eso, "
+            f"¿cómo te hace sentir esa idea en tu día a día? (+{xp_ganado} XP canalizados)."
+        )
+
+    interaccion.respuesta_guia = respuesta_xixi
 
     # 3. Registrar la interacción en BD
     nueva_interaccion = crud.registrar_interaccion(
         db=db, usuario_id=usuario_id, interaccion=interaccion
     )
 
-    # 4. 🤖 LÓGICA DE AUTO-ESCRITURA EN EL LIBRO VIVO
+    # 4. Actualizar Pasaporte (XP y Nivel)
+    if db_usuario.pasaporte:
+        db_usuario.pasaporte.puntos_experiencia += xp_ganado
+        nuevo_nivel = (db_usuario.pasaporte.puntos_experiencia // 100) + 1
+        db_usuario.pasaporte.nivel_actual = nuevo_nivel
+
+    # 5. Actualizar Árbol (Energía Vital) y evaluar evolución
+    if db_usuario.arbol:
+        db_usuario.arbol.energia_vital += energia_ganada
+        evaluar_y_actualizar_arbol(db, db_usuario.arbol, db_usuario.pasaporte)
+
+    # 6. 🤖 LÓGICA DE AUTO-ESCRITURA EN EL LIBRO VIVO
     total_interacciones = (
         db.query(models.InteraccionGuia)
         .filter(models.InteraccionGuia.usuario_id == usuario_id)
@@ -309,6 +334,14 @@ def guardar_interaccion(
             if libro.paginas_completadas >= 5:
                 libro.capitulo_actual += 1
                 libro.paginas_completadas = 0
-            db.commit()
+            db.add(libro)
 
-    return nueva_interaccion
+    db.commit()
+
+    # Se retorna en formato JSON estructurado para el frontend
+    return {
+        "id": nueva_interaccion.id,
+        "respuesta_guia": respuesta_xixi,
+        "xp_ganado": xp_ganado,
+        "energia_ganada": energia_ganada,
+    }
