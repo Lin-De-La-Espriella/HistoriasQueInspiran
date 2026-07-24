@@ -155,32 +155,28 @@ class RequestAcceso(BaseModel):
 @app.post("/auth/login", response_model=schemas.Token, tags=["Autenticación"])
 def login_plataforma_json(req: RequestAcceso, db: Session = Depends(get_db)):
     """
-    Endpoint moderno de login vía JSON para evitar conflictos de Form-Data con Streamlit.
+    Endpoint de login vía JSON con control de excepciones.
     """
     correo_limpio = req.email.strip()
     clave_limpia = req.password.strip()
 
+    # 1. Buscar usuario
     usuario = crud.obtener_usuario_por_email(db, email=correo_limpio)
     if not usuario:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"No existe una cuenta con el correo: {correo_limpio}",
+            detail="Correo o contraseña incorrectos.",
         )
 
-    try:
-        if not security.verificar_password(
-            clave_limpia, usuario.hashed_password.strip()
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="La contraseña es incorrecta.",
-            )
-    except Exception as e:
+    # 2. Verificar contraseña
+    es_valida = security.verificar_password(clave_limpia, usuario.hashed_password)
+    if not es_valida:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Fallo de motor de encriptación: {str(e)}",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Correo o contraseña incorrectos.",
         )
 
+    # 3. Generar token
     access_token = security.crear_token_acceso(
         data={"sub": usuario.email, "usuario_id": usuario.id, "rol": usuario.rol}
     )
