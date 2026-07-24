@@ -97,13 +97,16 @@ def crear_nuevo_usuario(usuario: schemas.UsuarioCrear, db: Session = Depends(get
     """
     Endpoint para registrar un nuevo usuario y crear su ecosistema inicial.
     """
-    db_usuario = crud.obtener_usuario_por_email(db, email=usuario.email)
-    if db_usuario:
+    try:
+        # Delegamos toda la lógica y validación al CRUD (Código Limpio)
+        return crud.crear_usuario(db=db, usuario=usuario)
+    except HTTPException as http_exc:
+        raise http_exc
+    except Exception as e:
         raise HTTPException(
-            status_code=400,
-            detail="Este correo electrónico ya está registrado en la plataforma.",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Fallo crítico en la arquitectura de datos: {str(e)}",
         )
-    return crud.crear_usuario(db=db, usuario=usuario)
 
 
 @app.get("/usuarios/", response_model=List[schemas.UsuarioRespuesta], tags=["Usuarios"])

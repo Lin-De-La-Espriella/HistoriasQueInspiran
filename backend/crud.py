@@ -4,7 +4,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 
-def crear_usuario(db: Session, usuario: schemas.UsuarioCreate):
+# Reemplaza la firma de la función actual por esta:
+def crear_usuario(
+    db: Session, usuario: schemas.UsuarioCrear
+):  # Corrección de 'UsuarioCreate' a 'UsuarioCrear'
     # 1. Verificar si el correo ya existe antes de intentar insertar
     usuario_existente = (
         db.query(models.Usuario)
