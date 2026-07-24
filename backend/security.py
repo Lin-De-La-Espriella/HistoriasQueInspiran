@@ -19,14 +19,17 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
+def get_password_hash(password: str) -> str:
+    """Genera el hash seguro encriptado mediante bcrypt limitando el tamaño a 72 bytes."""
+    # Truncado seguro UTF-8 a máximo 72 bytes
+    pwd_safe = password.encode("utf-8")[:72].decode("utf-8", errors="ignore")
+    return pwd_context.hash(pwd_safe)
+
+
 def verificar_password(plain_password: str, hashed_password: str) -> bool:
     """Verifica si la contraseña ingresada coincide con el hash almacenado."""
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-def get_password_hash(password: str) -> str:
-    """Genera el hash seguro encriptado mediante bcrypt."""
-    return pwd_context.hash(password)
+    pwd_safe = plain_password.encode("utf-8")[:72].decode("utf-8", errors="ignore")
+    return pwd_context.verify(pwd_safe, hashed_password)
 
 
 def crear_token_acceso(data: dict, expires_delta: Optional[timedelta] = None) -> str:
