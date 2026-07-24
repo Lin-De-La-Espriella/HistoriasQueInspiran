@@ -5,34 +5,38 @@ from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt  # <-- Importación directa de la librería nativa
 
 load_dotenv()
 
 # Variables de Configuración de Seguridad
-SECRET_KEY = os.getenv("SECRET_KEY", "super_secret_key_historias_que_inspiran_2026")
+SECRET_KEY = os.getenv(
+    "SECRET_KEY", "super_secret_key_historias_que_inspiran_2026"
+)
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 horas de vigencia
 
-# Contexto de Hasheo con Bcrypt
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
-def get_password_hash(password: str) -> str:
-    """Genera el hash seguro encriptado mediante bcrypt limitando el tamaño a 72 bytes."""
-    # Truncado seguro UTF-8 a máximo 72 bytes
-    pwd_safe = password.encode("utf-8")[:72].decode("utf-8", errors="ignore")
-    return pwd_context.hash(pwd_safe)
-
-
 def verificar_password(plain_password: str, hashed_password: str) -> bool:
-    """Verifica si la contraseña ingresada coincide con el hash almacenado."""
-    pwd_safe = plain_password.encode("utf-8")[:72].decode("utf-8", errors="ignore")
-    return pwd_context.verify(pwd_safe, hashed_password)
+    """Verifica la contraseña usando bcrypt nativo de forma limpia."""
+    return bcrypt.checkpw(
+        plain_password.encode('utf-8'), 
+        hashed_password.encode('utf-8')
+    )
 
 
-def crear_token_acceso(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def get_password_hash(password: str) -> str:
+    """Genera el hash seguro usando bcrypt nativo, sin intermediarios."""
+    salt = bcrypt.gensalt()
+    hashed_bytes = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed_bytes.decode('utf-8')
+
+
+def crear_token_acceso(
+    data: dict, expires_delta: Optional[timedelta] = None
+) -> str:
     """Genera un Token JWT firmado con expiration claim."""
     to_encode = data.copy()
     if expires_delta:
