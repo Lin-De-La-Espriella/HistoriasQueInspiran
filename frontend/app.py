@@ -199,26 +199,29 @@ else:
     st.markdown("---")
 
     # ---------------------------------------------------------
-    # 1. VISOR GRÁFICO DEL ÁRBOL (CONEXIÓN DIRECTA POR URL)
+    # 1. VISOR GRÁFICO DEL ÁRBOL (CONEXIÓN BLINDADA POR URL)
     # ---------------------------------------------------------
     st.markdown("### 🌲 Bio-Estructura en Crecimiento")
     col_img, col_desc = st.columns([1, 4])
 
     estado_limpio = estado_arbol.strip().lower()
 
-    # Diccionario con URLs directas que tú me pasaste y las oficiales
+    # Diccionario con URLs directas
     URLS_LOTTIE = {
         "semilla": "https://raw.githubusercontent.com/andfanilo/streamlit-lottie/main/tests/lottie_hello.json",
         "brote_menor": "https://assets9.lottiefiles.com/packages/lf20_jrvt0u4q.json",
         "brote_explorador": "https://assets7.lottiefiles.com/packages/lf20_xd9yqjw6.json",
-        # Puedes seguir añadiendo más links directos aquí abajo si gustas
     }
 
-    # Función robusta que descarga el JSON directamente desde el link sin bloqueos
+    # NUEVA FUNCIÓN: Con "Disfraz" de navegador para burlar el bloqueo de LottieFiles
     @st.cache_data(show_spinner=False)
-    def obtener_lottie_por_url(url: str):
+    def descargar_lottie_seguro(url: str):
+        if not url:
+            return None
         try:
-            r = requests.get(url, timeout=5)
+            # Cabecera vital para que LottieFiles nos deje pasar
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            r = requests.get(url, headers=headers, timeout=5)
             if r.status_code == 200:
                 return r.json()
         except Exception:
@@ -251,7 +254,6 @@ else:
             "Se conecta con su intuición y su voz interior.",
             "Hago preguntas, busco respuestas y entiendo más.",
         ),
-        # (Los demás estados por defecto usan la semilla si no se definen)
     }
 
     titulo_fase, emo, men, soc, esp, frase = mapeo_textos_bio.get(
@@ -266,15 +268,19 @@ else:
         ),
     )
 
-    # Obtenemos la animación por URL o usamos fallback si no existe link asignado
+    # Obtenemos la URL. Si la fase no está en el diccionario, usa la semilla por defecto.
     url_animacion = URLS_LOTTIE.get(estado_limpio, URLS_LOTTIE["semilla"])
-    animacion_json = obtener_lottie_por_url(url_animacion)
+    animacion_json = descargar_lottie_seguro(url_animacion)
 
     # COLUMNA IZQUIERDA: RENDERIZADO
     with col_img:
         if animacion_json:
-            st_lottie(animacion_json, height=140, key=f"lottie_view_{estado_limpio}")
+            st_lottie(
+                animacion_json, height=140, key=f"lottie_dinamico_{estado_limpio}"
+            )
         else:
+            # Si falla, muestra un mensaje chiquito para que sepamos qué pasó y el emoji
+            st.caption("Error de red 🔌")
             st.markdown(
                 f"<h1 style='text-align: center; font-size: 75px; margin: 0;'>🌱</h1>",
                 unsafe_allow_html=True,
