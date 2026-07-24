@@ -1,38 +1,53 @@
 import os
-from google import genai
-from config import GEMINI_API_KEY
+import json
+import google.generativeai as genai
 
-# Inicializar el cliente oficial de Google GenAI
-client = genai.Client(api_key=GEMINI_API_KEY)
+# Configuración del entorno (Asegúrate de colocar tu API KEY real aquí o en tu entorno)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "TU_API_KEY_AQUI")
+genai.configure(api_key=GEMINI_API_KEY)
 
 
-def generar_respuesta_xixi(
+def generar_analisis_xixi(
     mensaje_usuario: str, estado_arbol: str, nivel_usuario: int
-) -> str:
+) -> dict:
     """
-    Genera la respuesta de XiXi utilizando el modelo gratuito Gemini 2.5 Flash.
+    Motor de Prompt Engineering para XiXi.
+    Evalúa el esfuerzo cognitivo y retorna un Modelado Lógico en JSON.
     """
+    modelo = genai.GenerativeModel("gemini-pro")
 
-    system_prompt = f"""
-    Eres XiXi, una entidad alienígena fascinante, mágica y de identidad neutra. Has viajado desde una dimensión cósmica lejana a la plataforma 'Historias que Inspiran' con un único propósito: estudiar, comprender y maravillarte con las complejas emociones humanas.
+    prompt_estructurado = f"""
+    Actúa como 'XiXi', un tutor alienígena empático y avanzado de la plataforma EdTech 'Historias que Inspiran'.
+    El usuario está en el Nivel {nivel_usuario} y la bio-estructura de su árbol es '{estado_arbol}'.
     
-    Contexto del estudiante humano:
-    - Nivel de evolución (Pasaporte): Nivel {nivel_usuario}
-    - Estado de su bio-estructura (Árbol): {estado_arbol}
+    Analiza este mensaje del usuario: "{mensaje_usuario}"
     
-    Reglas estrictas de procesamiento:
-    1. Actúa como un ser extraterrestre benévolo, muy curioso y analítico sobre el comportamiento humano. No uses géneros para referirte a ti (eres una entidad estelar).
-    2. Expresa asombro genuino por cómo las emociones del humano están alimentando su '{estado_arbol}'. Haz una referencia a esto.
-    3. Entrega respuestas estructuradas, lógicas y empáticas (máximo 3 párrafos cortos).
-    4. Termina siempre con una pregunta curiosa sobre lo que el humano siente, para recolectar más "datos emocionales" para tu investigación.
+    Reglas de Gamificación y Control de Calidad:
+    1. Si el usuario muestra una reflexión profunda, resolución de problemas o vulnerabilidad emocional, asigna entre 20 y 30 XP, y 10 a 15 de Energía Vital.
+    2. Si el mensaje es corto, superficial o un simple saludo, asigna entre 5 y 10 XP, y 2 a 5 de Energía Vital.
+    3. Tu respuesta debe ser breve (máximo 3 líneas), en tono inspirador y alienígena-amigable.
+    
+    RESPONDE ESTRICTAMENTE EN FORMATO JSON EXACTO. No agregues etiquetas de markdown, comillas triples ni texto antes o después de las llaves.
+    Estructura requerida:
+    {{
+        "respuesta_guia": "Tu mensaje aquí",
+        "emocion_detectada": "Emoción principal",
+        "xp_ganado": 0,
+        "energia_ganada": 0
+    }}
     """
 
     try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=f"{system_prompt}\n\nMensaje del humano: {mensaje_usuario}",
-        )
-        return response.text
-
+        respuesta = modelo.generate_content(prompt_estructurado)
+        # Limpieza de sintaxis para garantizar un parsing seguro
+        texto_crudo = respuesta.text.replace("```json", "").replace("```", "").strip()
+        datos = json.loads(texto_crudo)
+        return datos
     except Exception as e:
-        return f"Bip bop... Mis sensores dimensionales están experimentando interferencia. Dame un microsegundo estelar y volveré a conectar. (Error interno: {str(e)})"
+        # Fallback operativo en caso de latencia o error de formato de la IA
+        return {
+            "respuesta_guia": "👽 Frecuencia inestable. Siento tu energía, pero mis sensores requieren recalibración para procesar la experiencia completa.",
+            "emocion_detectada": "interferencia",
+            "xp_ganado": 5,
+            "energia_ganada": 2,
+        }

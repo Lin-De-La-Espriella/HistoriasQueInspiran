@@ -251,11 +251,6 @@ def escribir_pagina_libro(
     return libro
 
 
-# ==========================================
-# SECCIÓN: GUÍAS IA (CHAT E INTERACCIONES)
-# ==========================================
-
-
 @app.post(
     "/usuarios/{usuario_id}/interacciones/",
     status_code=status.HTTP_201_CREATED,
@@ -268,8 +263,8 @@ def guardar_interaccion(
     usuario_actual: dict = Depends(security.obtener_usuario_actual),
 ):
     """
-    Motor Psico-Pedagógico de XiXi:
-    Analiza la interacción, asigna recompensas y evalúa el ecosistema.
+    Motor Psico-Pedagógico de XiXi 2.0:
+    Utiliza Prompt Engineering avanzado para asignar recompensas dinámicas.
     """
     # 1. Obtener el contexto del usuario
     db_usuario = (
@@ -279,27 +274,19 @@ def guardar_interaccion(
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
     mensaje = interaccion.mensaje_usuario.strip()
-    longitud_palabras = len(mensaje.split())
+    estado_arbol = (
+        db_usuario.arbol.estado_crecimiento if db_usuario.arbol else "semilla"
+    )
+    nivel_usuario = db_usuario.pasaporte.nivel_actual if db_usuario.pasaporte else 1
 
-    xp_ganado = 0
-    energia_ganada = 0
+    # 2. Inferencia de IA: Evaluación del mensaje
+    analisis_ia = ia_service.generar_analisis_xixi(
+        mensaje_usuario=mensaje, estado_arbol=estado_arbol, nivel_usuario=nivel_usuario
+    )
 
-    # 2. Lógica Heurística Base para XiXi
-    if longitud_palabras > 8:
-        xp_ganado = 25
-        energia_ganada = 10
-        respuesta_xixi = (
-            f"👽 *[Frecuencia Sincronizada]* Siento la resonancia de tus palabras. "
-            f"Expresar lo que piensas con tal claridad fortalece tus raíces. "
-            f"He canalizado +{xp_ganado} XP a tu Pasaporte y +{energia_ganada} pts a tu Energía Vital."
-        )
-    else:
-        xp_ganado = 10
-        energia_ganada = 5
-        respuesta_xixi = (
-            f"👽 Te escucho en la órbita. Cuéntame un poco más sobre eso, "
-            f"¿cómo te hace sentir esa idea en tu día a día? (+{xp_ganado} XP canalizados)."
-        )
+    xp_ganado = analisis_ia.get("xp_ganado", 5)
+    energia_ganada = analisis_ia.get("energia_ganada", 2)
+    respuesta_xixi = analisis_ia.get("respuesta_guia", "Frecuencia recibida.")
 
     interaccion.respuesta_guia = respuesta_xixi
 
@@ -326,7 +313,6 @@ def guardar_interaccion(
         .count()
     )
 
-    # Cada 3 mensajes con XiXi, el Libro Vivo absorbe el aprendizaje y llena +1 Hoja
     if total_interacciones > 0 and total_interacciones % 3 == 0:
         libro = crud.obtener_libro_vivo(db=db, usuario_id=usuario_id)
         if libro:
@@ -338,10 +324,10 @@ def guardar_interaccion(
 
     db.commit()
 
-    # Se retorna en formato JSON estructurado para el frontend
     return {
         "id": nueva_interaccion.id,
         "respuesta_guia": respuesta_xixi,
+        "emocion_detectada": analisis_ia.get("emocion_detectada", "N/A"),
         "xp_ganado": xp_ganado,
         "energia_ganada": energia_ganada,
     }
