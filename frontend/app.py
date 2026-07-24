@@ -41,14 +41,15 @@ def cargar_lottie_local(filepath: str):
 
 
 def autenticar_usuario(email, password):
-    """Función auxiliar para solicitar el token e identificar al usuario."""
+    """Función auxiliar para solicitar el token e identificar al usuario vía JSON puro."""
     try:
+        # Limpieza estricta de espacios
         email_limpio = email.strip()
         pass_limpio = password.strip()
 
-        response = requests.post(
-            f"{API_URL}/token", data={"username": email_limpio, "password": pass_limpio}
-        )
+        # Uso del nuevo endpoint /auth/login nativo JSON
+        payload = {"email": email_limpio, "password": pass_limpio}
+        response = requests.post(f"{API_URL}/auth/login", json=payload)
 
         if response.status_code == 200:
             data = response.json()
@@ -64,8 +65,8 @@ def autenticar_usuario(email, password):
                     st.session_state.usuario_id = user_obj["id"]
             return True
         else:
-            # 🚨 AQUÍ ESTÁ LA MAGIA: Si falla, imprimimos el error exacto de la API
-            st.error(f"Fallo en la API ({response.status_code}): {response.text}")
+            # Visión de Rayos X activada: Imprimimos el error exacto si falla
+            st.error(f"Fallo en el Login ({response.status_code}): {response.text}")
             return False
 
     except requests.exceptions.ConnectionError:
@@ -124,8 +125,7 @@ if not st.session_state.token:
             if autenticar_usuario(email, password):
                 st.success("¡Acceso concedido! Sincronizando biometría...")
                 st.rerun()
-            else:
-                st.error("Credenciales incorrectas. Inténtalo de nuevo.")
+            # El "else" con error genérico se elimina porque autenticar_usuario ya imprime el error exacto.
 
     # --- PANTALLA DE REGISTRO ---
     elif modo == "Registrarse":
@@ -140,7 +140,6 @@ if not st.session_state.token:
 
             btn_registrar = st.form_submit_button("Crear Cuenta")
 
-        # La lógica de procesamiento se alinea fuera del renderizado de los inputs
         if btn_registrar:
             if nuevo_nombre.strip() and nuevo_email.strip() and nuevo_password.strip():
                 payload = {
@@ -154,7 +153,6 @@ if not st.session_state.token:
                         st.success(
                             "¡Usuario creado exitosamente! Sincronizando acceso..."
                         )
-                        # Corrección de indentación en autenticar_usuario
                         if autenticar_usuario(
                             nuevo_email.strip(), nuevo_password.strip()
                         ):
@@ -164,7 +162,6 @@ if not st.session_state.token:
                 except Exception as e:
                     st.error(f"Fallo de conexión: {e}")
             else:
-                # Corrección de alineación: ahora responde a campos vacíos al hacer clic
                 st.warning("Por favor completa todos los campos obligatorios.")
 
     # --- PANTALLA DE INYECCIÓN DE DATOS (Mantenimiento) ---
@@ -313,7 +310,7 @@ else:
         "arbol_joven_creativo": (
             "frontend/assets/arbol_joven_creativo.json",
             "5. Árbol Joven Creativo (Creo y Transformo)",
-            "Potencia la motivación y la expresión personal.",
+            "Potencia la motivación y la expression personal.",
             "Desarrolla la creatividad y la resolución de problemas.",
             "Inspira y motiva a otros con su originalidad.",
             "Descubre su propósito y talentos únicos.",

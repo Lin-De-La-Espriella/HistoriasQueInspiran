@@ -98,7 +98,6 @@ def crear_nuevo_usuario(usuario: schemas.UsuarioCrear, db: Session = Depends(get
     Endpoint para registrar un nuevo usuario y crear su ecosistema inicial.
     """
     try:
-        # Delegamos toda la lógica y validación al CRUD (Código Limpio)
         return crud.crear_usuario(db=db, usuario=usuario)
     except HTTPException as http_exc:
         raise http_exc
@@ -123,36 +122,65 @@ def listar_usuarios(skip: int = 0, limit: int = 100, db: Session = Depends(get_d
 def login_para_obtener_token(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
-    # 1. Búsqueda estricta eliminando espacios fantasma
-    correo_limpio = form_data.username.strip()
-    usuario = crud.obtener_usuario_por_email(db, email=correo_limpio)
-
+    """
+    Endpoint para autenticar usuarios mediante OAuth2 (Form-Data).
+    """
+    usuario = crud.obtener_usuario_por_email(db, email=form_data.username.strip())
     if not usuario:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Usuario no encontrado en BD para el correo: {correo_limpio}",
+            detail="Correo o contraseña incorrectos.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
-    # 2. Validación blindada con Try/Except para capturar errores de bcrypt
-    try:
-        clave_limpia = form_data.password.strip()
-        hash_limpio = usuario.hashed_password.strip()
-
-        if not security.verificar_password(clave_limpia, hash_limpio):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="La contraseña no coincide con el hash encriptado.",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-    except Exception as e:
-        # Si bcrypt falla internamente, nos dirá el porqué
+    if not security.verificar_password(
+        form_data.password.strip(), usuario.hashed_password.strip()
+    ):
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error interno en motor de encriptación: {str(e)}",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Correo o contraseña incorrectos.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token = security.crear_token_acceso(
+        data={"sub": usuario.email, "usuario_id": usuario.id, "rol": usuario.rol}
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+# --- NUEVA VÍA RÁPIDA JSON (EVITA ERRORES 422 Y 500 DE FORMS) ---
+class RequestAcceso(BaseModel):
+    email: str
+    password: str
+
+
+@app.post("/auth/login", response_model=schemas.Token, tags=["Autenticación"])
+def login_plataforma_json(req: RequestAcceso, db: Session = Depends(get_db)):
+    """
+    Endpoint moderno de login vía JSON para evitar conflictos de Form-Data con Streamlit.
+    """
+    correo_limpio = req.email.strip()
+    clave_limpia = req.password.strip()
+
+    usuario = crud.obtener_usuario_por_email(db, email=correo_limpio)
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"No existe una cuenta con el correo: {correo_limpio}",
         )
 
-    # 3. Generar Token
+    try:
+        if not security.verificar_password(
+            clave_limpia, usuario.hashed_password.strip()
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="La contraseña es incorrecta.",
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Fallo de motor de encriptación: {str(e)}",
+        )
+
     access_token = security.crear_token_acceso(
         data={"sub": usuario.email, "usuario_id": usuario.id, "rol": usuario.rol}
     )
@@ -174,9 +202,7 @@ def asignarle_mision(
     usuario_id: int,
     mision: schemas.MisionCrear,
     db: Session = Depends(get_db),
-    usuario_actual: dict = Depends(
-        security.obtener_usuario_actual
-    ),  # 🔒 RUTA PROTEGIDA
+    usuario_actual: dict = Depends(security.obtener_usuario_actual),
 ):
     return crud.crear_mision_usuario(db=db, mision=mision, usuario_id=usuario_id)
 
@@ -189,9 +215,7 @@ def asignarle_mision(
 def ver_misiones(
     usuario_id: int,
     db: Session = Depends(get_db),
-    usuario_actual: dict = Depends(
-        security.obtener_usuario_actual
-    ),  # 🔒 RUTA PROTEGIDA
+    usuario_actual: dict = Depends(security.obtener_usuario_actual),
 ):
     return crud.obtener_misiones_usuario(db=db, usuario_id=usuario_id)
 
@@ -205,11 +229,8 @@ def completar_mision_usuario(
     usuario_id: int,
     mision_id: int,
     db: Session = Depends(get_db),
-    usuario_actual: dict = Depends(
-        security.obtener_usuario_actual
-    ),  # 🔒 RUTA PROTEGIDA
+    usuario_actual: dict = Depends(security.obtener_usuario_actual),
 ):
-    # 1. Completar misión en la BD (suma experiencia)
     mision_actualizada = crud.completar_mision(
         db=db, usuario_id=usuario_id, mision_id=mision_id
     )
@@ -220,7 +241,6 @@ def completar_mision_usuario(
             detail="Operación rechazada: La misión no existe o ya fue reclamada.",
         )
 
-    # 2. Extraer usuario para evaluar evolución del árbol
     db_usuario = (
         db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
     )
@@ -255,7 +275,6 @@ def escribir_pagina_libro(
 
     libro.paginas_completadas += 1
 
-    # Lógica de cierre de capítulo
     if libro.paginas_completadas >= 5:
         libro.capitulo_actual += 1
         libro.paginas_completadas = 0
@@ -297,35 +316,29 @@ def guardar_interaccion(
     )
     nivel_usuario = db_usuario.pasaporte.nivel_actual if db_usuario.pasaporte else 1
 
-    # 🚀 LLAMADA AL CEREBRO DE INTELIGENCIA ARTIFICIAL
     analisis_ia = ia_service.generar_analisis_xixi(
         mensaje_usuario=mensaje, estado_arbol=estado_arbol, nivel_usuario=nivel_usuario
     )
 
-    # Extraemos los datos calculados por Gemini
     xp_ganado = analisis_ia.get("xp_ganado", 5)
     energia_ganada = analisis_ia.get("energia_ganada", 2)
     respuesta_xixi = analisis_ia.get("respuesta_guia", "Frecuencia recibida.")
 
     interaccion.respuesta_guia = respuesta_xixi
 
-    # Registrar la interacción en Base de Datos
     nueva_interaccion = crud.registrar_interaccion(
         db=db, usuario_id=usuario_id, interaccion=interaccion
     )
 
-    # Actualizar Pasaporte (XP y Nivel)
     if db_usuario.pasaporte:
         db_usuario.pasaporte.puntos_experiencia += xp_ganado
         nuevo_nivel = (db_usuario.pasaporte.puntos_experiencia // 100) + 1
         db_usuario.pasaporte.nivel_actual = nuevo_nivel
 
-    # Actualizar Árbol (Energía Vital) y evaluar evolución
     if db_usuario.arbol:
         db_usuario.arbol.energia_vital += energia_ganada
         evaluar_y_actualizar_arbol(db, db_usuario.arbol, db_usuario.pasaporte)
 
-    # Lógica del Libro Vivo (Avanza 1 página cada 3 mensajes)
     total_interacciones = (
         db.query(models.InteraccionGuia)
         .filter(models.InteraccionGuia.usuario_id == usuario_id)
