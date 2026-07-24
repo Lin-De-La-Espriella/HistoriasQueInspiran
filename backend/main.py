@@ -30,50 +30,59 @@ def ruta_principal():
 
 
 # ==========================================
-# SECCIÓN: REGLAS DE NEGOCIO (CORE LÓGICO)
+# SECCIÓN: REGLAS DE NEGOCIO (CORE GAMIFICADO)
 # ==========================================
+
+
+def calcular_nivel_por_xp(xp_totales: int) -> int:
+    """
+    Calcula el nivel dinámico usando la curva progresiva:
+    XP acumulados necesarios para Nivel N = 50 * N * (N - 1)
+    """
+    nivel = 1
+    xp_necesaria = 0
+    while True:
+        xp_siguiente = nivel * 100
+        if xp_totales < xp_necesaria + xp_siguiente:
+            break
+        xp_necesaria += xp_siguiente
+        nivel += 1
+    return nivel
 
 
 def evaluar_y_actualizar_arbol(db, arbol_obj, pasaporte_obj):
     """
-    Modelado Lógico para la evolución de 10 Fases Biológicas (0 a 1000 XP).
+    Modelado Lógico para la evolución de 10 Fases Biológicas en función del Nivel.
     """
-    xp = pasaporte_obj.puntos_experiencia
+    # 1. Recalcular nivel con la curva progresiva
+    pasaporte_obj.nivel_actual = calcular_nivel_por_xp(pasaporte_obj.puntos_experiencia)
+    nivel = pasaporte_obj.nivel_actual
 
-    # Mapeo lineal según los 10 Capítulos
-    if xp >= 1000:
-        arbol_obj.estado_crecimiento = "arbol_cosmico"
-        arbol_obj.energia_vital = 300
-    elif xp >= 800:
-        arbol_obj.estado_crecimiento = "arbol_frondoso_sabio"
-        arbol_obj.energia_vital = 250
-    elif xp >= 700:
-        arbol_obj.estado_crecimiento = "arbol_frondoso_visionario"
-        arbol_obj.energia_vital = 225
-    elif xp >= 600:
-        arbol_obj.estado_crecimiento = "arbol_frondoso_lider"
-        arbol_obj.energia_vital = 200
-    elif xp >= 500:
-        arbol_obj.estado_crecimiento = "arbol_joven_empatico"
-        arbol_obj.energia_vital = 175
-    elif xp >= 400:
-        arbol_obj.estado_crecimiento = "arbol_joven_creativo"
-        arbol_obj.energia_vital = 150
-    elif xp >= 300:
-        arbol_obj.estado_crecimiento = "arbol_joven_enraizado"
-        arbol_obj.energia_vital = 140
-    elif xp >= 200:
-        arbol_obj.estado_crecimiento = "brote_explorador"
-        arbol_obj.energia_vital = 130
-    elif xp >= 100:
-        arbol_obj.estado_crecimiento = "brote_menor"
-        arbol_obj.energia_vital = 120
-    else:
-        arbol_obj.estado_crecimiento = "semilla"
-        arbol_obj.energia_vital = 100
+    # 2. Mapeo del Estado del Árbol según el Nivel alcanzado
+    fases = {
+        1: ("semilla", 100),
+        2: ("brote_menor", 120),
+        3: ("brote_explorador", 130),
+        4: ("arbol_joven_enraizado", 140),
+        5: ("arbol_joven_creativo", 150),
+        6: ("arbol_joven_empatico", 175),
+        7: ("arbol_frondoso_lider", 200),
+        8: ("arbol_frondoso_visionario", 225),
+        9: ("arbol_frondoso_sabio", 250),
+        10: ("arbol_cosmico", 300),
+    }
+
+    # Asigna la fase correspondiente al nivel (o Máximo Árbol Cósmico si supera Nivel 10)
+    estado, energia = fases.get(nivel, ("arbol_cosmico", 300))
+    arbol_obj.estado_crecimiento = estado
+
+    # Solo incrementa la energía base si no la ha superado por interacción
+    if arbol_obj.energia_vital < energia:
+        arbol_obj.energia_vital = energia
 
     db.commit()
     db.refresh(arbol_obj)
+    db.refresh(pasaporte_obj)
 
 
 # ==========================================
