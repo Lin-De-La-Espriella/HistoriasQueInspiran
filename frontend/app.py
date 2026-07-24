@@ -120,31 +120,42 @@ if not st.session_state.token:
     # --- PANTALLA DE REGISTRO ---
     elif modo == "Registrarse":
         st.markdown("### 📝 Crear Nueva Cuenta")
-        nuevo_nombre = st.text_input("Nombre Completo", key="reg_nombre")
-        nuevo_email = st.text_input("Correo Electrónico", key="reg_email")
-        nuevo_password = st.text_input("Contraseña", type="password", key="reg_pass")
 
-        if st.button("Crear Cuenta"):
-            if nuevo_nombre and nuevo_email and nuevo_password:
+        with st.form("form_registro", clear_on_submit=False):
+            nuevo_nombre = st.text_input("Nombre Completo", key="reg_nombre")
+            nuevo_email = st.text_input("Correo Electrónico", key="reg_email")
+            nuevo_password = st.text_input(
+                "Contraseña", type="password", key="reg_pass"
+            )
+
+            btn_registrar = st.form_submit_button("Crear Cuenta")
+
+        # La lógica de procesamiento se alinea fuera del renderizado de los inputs
+        if btn_registrar:
+            if nuevo_nombre.strip() and nuevo_email.strip() and nuevo_password.strip():
                 payload = {
-                    "nombre": nuevo_nombre,
-                    "email": nuevo_email,
-                    "password": nuevo_password,
+                    "nombre": nuevo_nombre.strip(),
+                    "email": nuevo_email.strip(),
+                    "password": nuevo_password.strip(),
                 }
                 try:
                     res_crear = requests.post(f"{API_URL}/usuarios/", json=payload)
                     if res_crear.status_code in [200, 201]:
                         st.success(
-                            "¡Usuario creado exitosamente! Intentando ingresar..."
+                            "¡Usuario creado exitosamente! Sincronizando acceso..."
                         )
-                        if autenticar_usuario(nuevo_email, nuevo_password):
+                        # Corrección de indentación en autenticar_usuario
+                        if autenticar_usuario(
+                            nuevo_email.strip(), nuevo_password.strip()
+                        ):
                             st.rerun()
                     else:
                         st.error(f"Error al registrar: {res_crear.text}")
                 except Exception as e:
                     st.error(f"Fallo de conexión: {e}")
             else:
-                st.warning("Por favor completa todos los campos.")
+                # Corrección de alineación: ahora responde a campos vacíos al hacer clic
+                st.warning("Por favor completa todos los campos obligatorios.")
 
     # --- PANTALLA DE INYECCIÓN DE DATOS (Mantenimiento) ---
     elif modo == "Estado del Sistema (DEV)":
