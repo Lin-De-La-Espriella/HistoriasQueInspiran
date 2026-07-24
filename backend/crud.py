@@ -83,6 +83,16 @@ def crear_usuario(db: Session, usuario: schemas.UsuarioCrear):
         )
 
 
+def autenticar_usuario(db: Session, email: str, password_plana: str):
+    """Verifica las credenciales del usuario comparando la contraseña plana con el hash almacenado."""
+    usuario = obtener_usuario_por_email(db, email=email)
+    if not usuario:
+        return None
+    if not security.verify_password(password_plana, usuario.hashed_password):
+        return None
+    return usuario
+
+
 def crear_mision_usuario(db: Session, mision: schemas.MisionCrear, usuario_id: int):
     """Crea una misión asignada a un usuario específico."""
     db_mision = models.MisionUsuario(

@@ -4,6 +4,9 @@ from sqlalchemy.orm import Session
 from typing import List
 from pydantic import BaseModel
 import random
+from pydantic import BaseModel
+from typing import Optional
+from datetime import timedelta
 
 # Imports directos (compatibles con Root Directory = backend en Render y ejecución local)
 from backend import models, schemas, crud, security, ia_service
@@ -23,6 +26,59 @@ def ruta_principal():
     return {
         "estado": "En línea",
         "mensaje": "El cerebro de Historias que Inspiran está funcionando con el motor de Gamificación.",
+    }
+
+
+class LoginSchema(BaseModel):
+    email: str
+    password: str
+
+
+@app.post("/auth/login")
+@app.post("/token")
+def login_usuario(
+    login_data: Optional[LoginSchema] = None,
+    form_data: Optional[OAuth2PasswordRequestForm] = Depends(None),
+    db: Session = Depends(get_db),
+):
+    email = None
+    password = None
+
+    # Soporte para formato JSON (Streamlit)
+    if login_data and login_data.email and login_data.password:
+        email = login_data.email.strip().lower()
+        password = login_data.password.strip()
+
+    # Soporte para formato Form-Data (Swagger / OAuth2 estándar)
+    elif form_data and form_data.username and form_data.password:
+        email = form_data.username.strip().lower()
+        password = form_data.password.strip()
+
+    if not email or not password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Por favor ingresa un correo y una contraseña válidos.",
+        )
+
+    usuario = crud.autenticar_usuario(db, email=email, password_plana=password)
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciales incorrectas o usuario no registrado.",
+            headers={"Www-Authenticate": "Bearer"},
+        )
+
+    access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = security.create_access_token(
+        data={"sub": usuario.email}, expires_delta=access_token_expires
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "usuario_id": usuario.id,
+        "nombre": usuario.nombre,
+        "rol": usuario.rol,
     }
 
 
