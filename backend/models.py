@@ -1,7 +1,9 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from .database import Base
+
+# Importación absoluta optimizada para Render
+from database import Base
 
 
 class Usuario(Base):
@@ -10,12 +12,12 @@ class Usuario(Base):
     id = Column(Integer, primary_key=True, index=True)
     nombre = Column(String(100), nullable=False)
     email = Column(String(150), unique=True, index=True, nullable=False)
-    hashed_password = Column(String(255), nullable=False)  # <-- NUEVO CAMPO AÑADIDO
+    hashed_password = Column(String(255), nullable=False)
     rol = Column(String(20), default="estudiante")
     activo = Column(Boolean, default=True)
     fecha_creacion = Column(DateTime(timezone=True), server_default=func.now())
 
-    # Relaciones de Gamificación e IA
+    # Relaciones - Arquitectura Gamificada e IA
     pasaporte = relationship("Pasaporte", back_populates="dueño", uselist=False)
     arbol = relationship("ArbolProgreso", back_populates="dueño", uselist=False)
     misiones = relationship("MisionUsuario", back_populates="dueño")

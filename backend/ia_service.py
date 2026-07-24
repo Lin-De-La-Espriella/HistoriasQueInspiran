@@ -2,95 +2,95 @@ import json
 import os
 import re
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types
 
-# Carga explicita de variables de entorno desde la raíz y carpeta backend
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, ".."))
-
-load_dotenv(dotenv_path=os.path.join(PROJECT_ROOT, ".env"))
-load_dotenv(dotenv_path=os.path.join(BASE_DIR, ".env"))
-
-
-def obtener_cliente_gemini():
-    """Instancia el cliente oficial usando el nuevo SDK google-genai."""
-    api_key = os.getenv("GEMINI_API_KEY", "")
-    if api_key and api_key != "tu_clave_aqui":
-        try:
-            return genai.Client(api_key=api_key)
-        except Exception as e:
-            print(f"❌ Error al instanciar genai.Client: {e}")
-            return None
-    return None
+load_dotenv()
 
 
 def generar_analisis_xixi(
     mensaje_usuario: str, estado_arbol: str, nivel_usuario: int
 ) -> dict:
-    client = obtener_cliente_gemini()
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
 
-    if not client:
-        print(
-            "⚠️ ALERTA: No se pudo obtener el cliente Gemini. Entrando a respuesta local."
-        )
-        return _respuesta_heuristica_avanzada(mensaje_usuario)
+    if not api_key:
+        print("❌ CRÍTICO: GEMINI_API_KEY no está configurada en Render.")
+        return {
+            "respuesta_guia": "👽 [Error de Configuración] La variable GEMINI_API_KEY no se encuentra cargada en el servidor de Render. Por favor agrégala en la pestaña Environment de tu Web Service.",
+            "emocion_detectada": "Configuración Requerida",
+            "xp_ganado": 0,
+            "energia_ganada": 0,
+        }
 
+    prompt_sistema = f"""
+    Eres 'XiXi', mentor alienígena y estratega de negocios de 'Historias que Inspiran'.
+    
+    INSTRUCCIONES CLAVE:
+    1. Si el usuario pide un formato, plantilla o modelo, DEBES PROPORCIONAR EL FORMATO COMPLETO, ESTRUCTURADO Y DETALLADO.
+    2. Responde de forma precisa, profesional y adaptada a su nivel.
+    3. NO des respuestas genéricas.
+
+    CONTEXTO:
+    - Nivel: {nivel_usuario}
+    - Estado Árbol: {estado_arbol}
+    - Consulta del Usuario: "{mensaje_usuario}"
+
+    FORMATO DE SALIDA (SOLO JSON):
+    {{
+        "respuesta_guia": "Escribe aquí la respuesta completa o formato solicitado...",
+        "emocion_detectada": "Enfoque Estratégico",
+        "xp_ganado": 25,
+        "energia_ganada": 10
+    }}
+    """
+
+    # Intento con SDK google-genai
     try:
-        system_instruction = f"""
-        Eres 'XiXi', mentor psico-pedagógico y estratega de negocios alienígena de 'Historias que Inspiran'.
-        
-        INSTRUCCIONES CLAVE DE RESPUESTA:
-        1. Analiza con precisión la intención del usuario. Si pide un plan de trabajo, cronograma o estrategia para su empresa, proporciónale PASOS CONCRETOS, ESTRUCTURADOS Y EJECUTABLES para HOY.
-        2. Mantén un tono profesional, inspirador y directo, combinando perspectiva de negocios con tu toque alienígena.
-        3. NO des respuestas genéricas ni evasivas.
-        
-        CONTEXTO TÉCNICO:
-        - Nivel de Evolución del Usuario: {nivel_usuario}
-        - Estado del Árbol de Crecimiento: {estado_arbol}
-        """
+        from google import genai
+        from google.genai import types
 
-        prompt = f'El usuario dice: "{mensaje_usuario}"'
-
-        # Configuración nativa del SDK moderno
+        client = genai.Client(api_key=api_key)
         config = types.GenerateContentConfig(
-            system_instruction=system_instruction,
+            system_instruction=prompt_sistema,
             temperature=0.7,
             response_mime_type="application/json",
-            response_schema={
-                "type": "OBJECT",
-                "properties": {
-                    "respuesta_guia": {"type": "STRING"},
-                    "emocion_detectada": {"type": "STRING"},
-                    "xp_ganado": {"type": "INTEGER"},
-                    "energia_ganada": {"type": "INTEGER"},
-                },
-                "required": [
-                    "respuesta_guia",
-                    "emocion_detectada",
-                    "xp_ganado",
-                    "energia_ganada",
-                ],
-            },
         )
-
         response = client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=prompt,
+            contents=f'Genera la respuesta para: "{mensaje_usuario}"',
             config=config,
         )
-
         return json.loads(response.text)
 
-    except Exception as e:
-        print(f"❌ ERROR EXACTO EN LLAMADA A GEMINI: {e}")
-        return _respuesta_heuristica_avanzada(mensaje_usuario)
+    except Exception as e_moderno:
+        print(f"⚠️ Falló SDK google-genai: {e_moderno}")
 
+    # Intento de respaldo con google-generativeai
+    try:
+        import google.generativeai as legacy_genai
 
-def _respuesta_heuristica_avanzada(mensaje: str) -> dict:
-    return {
-        "respuesta_guia": f"👽 [Respuesta Local] Mensaje recibido: '{mensaje}'. (Verifica la terminal de Uvicorn para ver el error de la API).",
-        "emocion_detectada": "Contingencia",
-        "xp_ganado": 5,
-        "energia_ganada": 2,
-    }
+        legacy_genai.configure(api_key=api_key)
+        model = legacy_genai.GenerativeModel("gemini-1.5-flash")
+
+        raw_response = model.generate_content(
+            f"{prompt_sistema}\n\nResponde a: {mensaje_usuario}"
+        )
+        texto = raw_response.text.strip()
+
+        match = re.search(r"\{.*\}", texto, re.DOTALL)
+        if match:
+            return json.loads(match.group(0))
+        else:
+            return {
+                "respuesta_guia": texto,
+                "emocion_detectada": "Estrategia",
+                "xp_ganado": 20,
+                "energia_ganada": 8,
+            }
+
+    except Exception as e_legacy:
+        print(f"❌ ERROR EN GEMINI API: {e_legacy}")
+        return {
+            "respuesta_guia": f"👽 [Error API Render]: {str(e_legacy)}",
+            "emocion_detectada": "Error de Conexión",
+            "xp_ganado": 0,
+            "energia_ganada": 0,
+        }
