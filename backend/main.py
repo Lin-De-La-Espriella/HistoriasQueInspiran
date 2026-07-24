@@ -5,13 +5,16 @@ from typing import List
 from pydantic import BaseModel
 import random
 
-# Imports del paquete local backend
-from backend import models, schemas, crud, security, ia_service
-from .database import engine, get_db
+# Imports directos (compatibles con Root Directory = backend en Render y ejecución local)
+import models
+import schemas
+import crud
+import security
+import ia_service
+from database import engine, get_db
 
 # Inicialización de la base de datos
 models.Base.metadata.create_all(bind=engine)
-
 app = FastAPI(
     title="Historias que Inspiran API",
     description="Motor principal de la plataforma EdTech y Gamificación",
