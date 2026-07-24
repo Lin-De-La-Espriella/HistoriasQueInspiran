@@ -199,38 +199,17 @@ else:
     st.markdown("---")
 
     # ---------------------------------------------------------
-    # 1. VISOR GRÁFICO DEL ÁRBOL (CONEXIÓN BLINDADA POR URL)
+    # 1. VISOR GRÁFICO DEL ÁRBOL (CARGA LOCAL)
     # ---------------------------------------------------------
     st.markdown("### 🌲 Bio-Estructura en Crecimiento")
     col_img, col_desc = st.columns([1, 4])
 
     estado_limpio = estado_arbol.strip().lower()
 
-    # Diccionario con URLs directas
-    URLS_LOTTIE = {
-        "semilla": "https://raw.githubusercontent.com/andfanilo/streamlit-lottie/main/tests/lottie_hello.json",
-        "brote_menor": "https://assets9.lottiefiles.com/packages/lf20_jrvt0u4q.json",
-        "brote_explorador": "https://assets7.lottiefiles.com/packages/lf20_xd9yqjw6.json",
-    }
-
-    # NUEVA FUNCIÓN: Con "Disfraz" de navegador para burlar el bloqueo de LottieFiles
-    @st.cache_data(show_spinner=False)
-    def descargar_lottie_seguro(url: str):
-        if not url:
-            return None
-        try:
-            # Cabecera vital para que LottieFiles nos deje pasar
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-            r = requests.get(url, headers=headers, timeout=5)
-            if r.status_code == 200:
-                return r.json()
-        except Exception:
-            return None
-        return None
-
-    # Mapeo de textos y descripciones para cada fase
-    mapeo_textos_bio = {
+    # Mapeo con archivos físicos locales
+    mapeo_bio = {
         "semilla": (
+            "frontend/assets/semilla.json",
             "1. Semilla (El Inicio de Todo)",
             "Despertar la curiosidad y la seguridad básica.",
             "Abre la mente al aprendizaje y la exploración.",
@@ -239,6 +218,7 @@ else:
             "Descubre quién soy y qué me hace único.",
         ),
         "brote_menor": (
+            "frontend/assets/brote_menor.json",
             "2. Brote Menor (Mis Primeros Pasos)",
             "Desarrolla la confianza y la alegría de aprender.",
             "Fortalece la atención y la memoria.",
@@ -247,6 +227,7 @@ else:
             "Exploro, juego y aprendo a conocer mi mundo.",
         ),
         "brote_explorador": (
+            "frontend/assets/brote_explorador.json",
             "3. Brote Explorador (Descubro y Me Pregunto)",
             "Aumenta la autoestima y la curiosidad sana.",
             "Desarrolla el pensamiento lógico y la creatividad.",
@@ -254,11 +235,75 @@ else:
             "Se conecta con su intuición y su voz interior.",
             "Hago preguntas, busco respuestas y entiendo más.",
         ),
+        "arbol_joven_enraizado": (
+            "frontend/assets/arbol_joven_enraizado.json",
+            "4. Árbol Joven Enraizado (Construyo Mis Bases)",
+            "Genera estabilidad emocional y autodisciplina.",
+            "Organiza ideas y establece metas.",
+            "Construye relaciones de confianza.",
+            "Fortalece su identidad y sus principios.",
+            "Formo hábitos, valores y una base sólida.",
+        ),
+        "arbol_joven_creativo": (
+            "frontend/assets/arbol_joven_creativo.json",
+            "5. Árbol Joven Creativo (Creo y Transformo)",
+            "Potencia la motivación y la expresión personal.",
+            "Desarrolla la creatividad y la resolución de problemas.",
+            "Inspira y motiva a otros con su originalidad.",
+            "Descubre su propósito y talentos únicos.",
+            "Imagino, creo y doy vida a mis ideas.",
+        ),
+        "arbol_joven_empatico": (
+            "frontend/assets/arbol_joven_empatico.json",
+            "6. Árbol Joven Empático (Entiendo y Me Conecto)",
+            "Profundiza la empatía y la inteligencia emocional.",
+            "Amplía la visión y el pensamiento crítico.",
+            "Fortalece la empatía, el respeto y la inclusión.",
+            "Comprende la unidad y la interconexión de la vida.",
+            "Me pongo en el lugar del otro y construyo puentes.",
+        ),
+        "arbol_frondoso_lider": (
+            "frontend/assets/arbol_frondoso_lider.json",
+            "7. Árbol Frondoso Líder (Guío e Inspiro)",
+            "Fortalece la confianza y la madurez emocional.",
+            "Toma decisiones con sabiduría y responsabilidad.",
+            "Influye positivamente en su comunidad.",
+            "Usa su luz para servir y transformar entornos.",
+            "Lidero con el ejemplo y dejo huella positiva.",
+        ),
+        "arbol_frondoso_visionario": (
+            "frontend/assets/arbol_frondoso_visionario.json",
+            "8. Árbol Frondoso Visionario (Sueño en Grande)",
+            "Desarrolla resiliencia y determinación.",
+            "Piensa en grande y anticipa soluciones innovadoras.",
+            "Crea proyectos que impactan a muchos.",
+            "Confía en su propósito y en el camino del alma.",
+            "Tengo visión, planifico y transformo sueños en realidades.",
+        ),
+        "arbol_frondoso_sabio": (
+            "frontend/assets/arbol_frondoso_sabio.json",
+            "9. Árbol Frondoso Sabio (Comparto Mi Sabiduría)",
+            "Refuerza la gratitud y la generosidad.",
+            "Integra conocimiento y experiencia para guiar.",
+            "Forma líderes y deja un impacto duradero.",
+            "Vive su propósito y deja huella en la historia.",
+            "Enseño, acompaño y dejo legado a otros.",
+        ),
+        "arbol_cosmico": (
+            "frontend/assets/arbol_cosmico.json",
+            "10. Árbol Cósmico (Unido al Universo)",
+            "Alcanza la paz interior y plenitud del alma.",
+            "Trasciende límites y comprende la verdad universal.",
+            "Es faro de luz e inspiración para la humanidad.",
+            "Conecta con la energía divina y el todo.",
+            "Estoy en paz, en unidad y expando mi luz al universo.",
+        ),
     }
 
-    titulo_fase, emo, men, soc, esp, frase = mapeo_textos_bio.get(
+    ruta_anim, titulo_fase, emo, men, soc, esp, frase = mapeo_bio.get(
         estado_limpio,
         (
+            "frontend/assets/semilla.json",
             "1. Semilla (El Inicio de Todo)",
             "Despertar la curiosidad y la seguridad básica.",
             "Abre la mente al aprendizaje y la exploración.",
@@ -268,21 +313,30 @@ else:
         ),
     )
 
-    # Obtenemos la URL. Si la fase no está en el diccionario, usa la semilla por defecto.
-    url_animacion = URLS_LOTTIE.get(estado_limpio, URLS_LOTTIE["semilla"])
-    animacion_json = descargar_lottie_seguro(url_animacion)
+    # Cargar animación Lottie de forma local
+    animacion_json = cargar_lottie_local(ruta_anim)
 
-    # COLUMNA IZQUIERDA: RENDERIZADO
+    # COLUMNA IZQUIERDA: RENDERIZADO DINÁMICO Y FALLBACK
     with col_img:
         if animacion_json:
-            st_lottie(
-                animacion_json, height=140, key=f"lottie_dinamico_{estado_limpio}"
-            )
+            st_lottie(animacion_json, height=140, key=f"lottie_view_{estado_limpio}")
         else:
-            # Si falla, muestra un mensaje chiquito para que sepamos qué pasó y el emoji
-            st.caption("Error de red 🔌")
+            # Fallback a emojis si el archivo JSON no está descargado aún
+            emojis_fase = {
+                "semilla": "🟡",
+                "brote_menor": "🌱",
+                "brote_explorador": "🍃",
+                "arbol_joven_enraizado": "🪵",
+                "arbol_joven_creativo": "🌳",
+                "arbol_joven_empatico": "💜",
+                "arbol_frondoso_lider": "🌲",
+                "arbol_frondoso_visionario": "🍂",
+                "arbol_frondoso_sabio": "🌸",
+                "arbol_cosmico": "✨",
+            }
+            icono_fallback = emojis_fase.get(estado_limpio, "🌱")
             st.markdown(
-                f"<h1 style='text-align: center; font-size: 75px; margin: 0;'>🌱</h1>",
+                f"<h1 style='text-align: center; font-size: 75px; margin: 0;'>{icono_fallback}</h1>",
                 unsafe_allow_html=True,
             )
 
@@ -292,7 +346,7 @@ else:
             unsafe_allow_html=True,
         )
 
-    # COLUMNA DERECHA: FRANJA AZUL
+    # COLUMNA DERECHA: FRANJA AZUL MULTIDIMENSIONAL
     with col_desc:
         contenido_tarjeta = f"""
         ### 📍 **Fase Actual: {titulo_fase}**
