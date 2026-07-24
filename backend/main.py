@@ -27,7 +27,7 @@ def ruta_principal():
 
 
 # ==========================================
-# SECCIÓN: AUTENTICACIÓN HÍBRIDA (JSON & FORM)
+# SECCIÓN: AUTENTICACIÓN (LOGIN SEPARADO Y LIMPIO)
 # ==========================================
 
 
@@ -37,28 +37,12 @@ class LoginSchema(BaseModel):
 
 
 @app.post("/auth/login", response_model=schemas.Token, tags=["Autenticación"])
-@app.post("/token", response_model=schemas.Token, tags=["Autenticación"])
-def login_usuario_universal(
-    login_data: Optional[LoginSchema] = None,
-    form_data: Optional[OAuth2PasswordRequestForm] = Depends(None),
-    db: Session = Depends(get_db),
-):
+def login_plataforma_json(login_data: LoginSchema, db: Session = Depends(get_db)):
     """
-    Endpoint híbrido y robusto: Soporta peticiones JSON (Streamlit)
-    y Form-Data (Swagger / OAuth2) evitando errores 422 y 500.
+    Endpoint exclusivo para Streamlit: Recibe JSON puro y evita conflictos de formularios.
     """
-    email = None
-    password = None
-
-    # 1. Extracción desde formato JSON
-    if login_data and login_data.email and login_data.password:
-        email = login_data.email.strip().lower()
-        password = login_data.password.strip()
-
-    # 2. Extracción desde formato Form-Data (OAuth2)
-    elif form_data and form_data.username and form_data.password:
-        email = form_data.username.strip().lower()
-        password = form_data.password.strip()
+    email = login_data.email.strip().lower()
+    password = login_data.password.strip()
 
     if not email or not password:
         raise HTTPException(
@@ -66,16 +50,13 @@ def login_usuario_universal(
             detail="Por favor ingresa un correo y una contraseña válidos.",
         )
 
-    # 3. Autenticación centralizada mediante CRUD
     usuario = crud.autenticar_usuario(db, email=email, password_plana=password)
     if not usuario:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Correo o contraseña incorrectos.",
-            headers={"Www-Authenticate": "Bearer"},
         )
 
-    # 4. Emisión de Token JWT seguro
     access_token_expires = timedelta(minutes=security.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = security.crear_token_acceso(
         data={"sub": usuario.email, "usuario_id": usuario.id, "rol": usuario.rol},
@@ -86,6 +67,29 @@ def login_usuario_universal(
         "access_token": access_token,
         "token_type": "bearer",
     }
+
+
+@app.post("/token", response_model=schemas.Token, tags=["Autenticación"])
+def login_para_obtener_token(
+    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
+):
+    """
+    Endpoint exclusivo para Swagger UI / OAuth2: Recibe Form-Data.
+    """
+    usuario = crud.obtener_usuario_por_email(db, email=form_data.username.strip())
+    if not usuario or not security.verificar_password(
+        form_data.password.strip(), usuario.hashed_password.strip()
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Correo o contraseña incorrectos.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    access_token = security.crear_token_acceso(
+        data={"sub": usuario.email, "usuario_id": usuario.id, "rol": usuario.rol}
+    )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 # ==========================================
