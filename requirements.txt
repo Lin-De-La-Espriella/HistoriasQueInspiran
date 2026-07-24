@@ -1,4 +1,14 @@
-streamlit
-requests
-streamlit-lottie
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+pydantic
+python-jose
+passlib
+bcrypt
+python-multipart
+google-generativeai
 google-genai
+requests
+python-dotenv
+email-validator
