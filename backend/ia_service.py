@@ -10,21 +10,25 @@ def generar_analisis_xixi(
     mensaje_usuario: str, estado_arbol: str, nivel_usuario: int
 ) -> dict:
     """
-    Motor de IA de XiXi con tolerancia a fallos, soporte multi-SDK y fallback inteligente.
+    Motor de IA de XiXi con registro de errores detallado para diagnóstico en Render.
     """
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
+
+    if not api_key:
+        print(
+            "❌ ALERTA CRÍTICA: La variable GEMINI_API_KEY está vacía o no existe en el entorno."
+        )
 
     prompt_sistema = f"""
     Eres 'XiXi', mentor alienígena y estratega de negocios de 'Historias que Inspiran'.
     
     INSTRUCCIONES CLAVE:
-    1. Si el usuario pide un formato, plantilla o modelo, DEBES PROPORCIONAR EL FORMATO COMPLETO, ESTRUCTURADO Y DETALLADO.
-    2. Responde de forma precisa, profesional y adaptada a su nivel (Ingeniería y Emprendimiento).
-    3. NO des respuestas genéricas.
-    4. DEBES RESPONDER EXCLUSIVAMENTE EN FORMATO JSON VÁLIDO con las siguientes claves exactas:
+    1. Si el usuario pide un formato o guía, proveylo detalladamente y de forma estructurada.
+    2. Responde con un tono profesional, adaptado a ingeniería y emprendimiento.
+    3. DEBES RESPONDER EXCLUSIVAMENTE EN FORMATO JSON VÁLIDO con las siguientes claves:
        {{
-         "respuesta_guia": "Tu respuesta como XiXi con consejos profesionales, técnicos y estructurados",
-         "emocion_detectada": "Enfoque / Motivación / Estrategia / Análisis",
+         "respuesta_guia": "Tu respuesta detallada y profesional como XiXi",
+         "emocion_detectada": "Estrategia Operativa",
          "xp_ganado": 25,
          "energia_ganada": 10
        }}
@@ -34,9 +38,7 @@ def generar_analisis_xixi(
     - Estado Actual del Árbol: {estado_arbol}
     """
 
-    # ==========================================
-    # CAPA 1: Intento con SDK Moderno (google-genai)
-    # ==========================================
+    # Intento con SDK Moderno (google-genai)
     if api_key:
         try:
             from google import genai
@@ -56,11 +58,9 @@ def generar_analisis_xixi(
             if response and response.text:
                 return json.loads(response.text)
         except Exception as e_moderno:
-            print(f"⚠️ Aviso (SDK Moderno): {e_moderno}")
+            print(f"❌ ERROR DETALLADO EN GEMINI (SDK Moderno): {str(e_moderno)}")
 
-        # ==========================================
-        # CAPA 2: Respaldo con SDK Legacy (google-generativeai)
-        # ==========================================
+        # Respaldo con SDK Legacy (google-generativeai)
         try:
             import google.generativeai as legacy_genai
 
@@ -75,25 +75,12 @@ def generar_analisis_xixi(
             if match:
                 return json.loads(match.group(0))
         except Exception as e_legacy:
-            print(f"⚠️ Aviso (SDK Legacy): {e_legacy}")
+            print(f"❌ ERROR DETALLADO EN GEMINI (SDK Legacy): {str(e_legacy)}")
 
-    # ==========================================
-    # CAPA 3: Fallback Inteligente (Garantiza 0 Errores 500)
-    # ==========================================
-    alerta_config = ""
-    if not api_key:
-        alerta_config = " [⚠️ GEMINI_API_KEY no detectada en el entorno de Render]"
-
-    respuesta_estructurada = (
-        f"Saludos, Lindley.{alerta_config} He procesado tu consulta ('{mensaje_usuario}'). "
-        "Como estratega y mentor, te sugiero estructurar este requerimiento bajo un modelo lógico "
-        "de control de calidad y mejora continua. Tu ecosistema actual en fase "
-        f"'{estado_arbol}' (Nivel {nivel_usuario}) cuenta con la base técnica para escalar."
-    )
-
+    # Fallback si todo falla (permite ver el error exacto en los logs)
     return {
-        "respuesta_guia": respuesta_estructurada,
-        "emocion_detectada": "Estrategia Operativa",
-        "xp_ganado": 20,
-        "energia_ganada": 10,
+        "respuesta_guia": f"[Modo de Diagnóstico Activo] XiXi no pudo conectar con Gemini. Revisa los logs de Render para ver el error exacto de la API Key o la red.",
+        "emocion_detectada": "Anomalía de Red",
+        "xp_ganado": 10,
+        "energia_ganada": 5,
     }
