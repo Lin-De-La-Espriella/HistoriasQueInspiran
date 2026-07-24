@@ -43,9 +43,13 @@ def cargar_lottie_local(filepath: str):
 def autenticar_usuario(email, password):
     """Función auxiliar para solicitar el token e identificar al usuario."""
     try:
+        email_limpio = email.strip()
+        pass_limpio = password.strip()
+
         response = requests.post(
-            f"{API_URL}/token", data={"username": email, "password": password}
+            f"{API_URL}/token", data={"username": email_limpio, "password": pass_limpio}
         )
+
         if response.status_code == 200:
             data = response.json()
             st.session_state.token = data["access_token"]
@@ -53,11 +57,17 @@ def autenticar_usuario(email, password):
             res_users = requests.get(f"{API_URL}/usuarios/")
             if res_users.status_code == 200:
                 usuarios = res_users.json()
-                user_obj = next((u for u in usuarios if u["email"] == email), None)
+                user_obj = next(
+                    (u for u in usuarios if u["email"] == email_limpio), None
+                )
                 if user_obj:
                     st.session_state.usuario_id = user_obj["id"]
             return True
-        return False
+        else:
+            # 🚨 AQUÍ ESTÁ LA MAGIA: Si falla, imprimimos el error exacto de la API
+            st.error(f"Fallo en la API ({response.status_code}): {response.text}")
+            return False
+
     except requests.exceptions.ConnectionError:
         st.error("⏳ No se pudo conectar con el servidor (Render / Localhost).")
         return False

@@ -123,34 +123,39 @@ def listar_usuarios(skip: int = 0, limit: int = 100, db: Session = Depends(get_d
 def login_para_obtener_token(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
-    """
-    Endpoint para autenticar usuarios mediante OAuth2 (Email y Password)
-    y generar un Token de acceso JWT.
-    """
-    # 1. Buscar al usuario por correo
-    usuario = crud.obtener_usuario_por_email(db, email=form_data.username)
+    # 1. Búsqueda estricta eliminando espacios fantasma
+    correo_limpio = form_data.username.strip()
+    usuario = crud.obtener_usuario_por_email(db, email=correo_limpio)
 
-    # 2. Validar existencia del usuario
     if not usuario:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Correo o contraseña incorrectos.",
+            detail=f"Usuario no encontrado en BD para el correo: {correo_limpio}",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # 3. Validar contraseña
-    if not security.verificar_password(form_data.password, usuario.hashed_password):
+    # 2. Validación blindada con Try/Except para capturar errores de bcrypt
+    try:
+        clave_limpia = form_data.password.strip()
+        hash_limpio = usuario.hashed_password.strip()
+
+        if not security.verificar_password(clave_limpia, hash_limpio):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="La contraseña no coincide con el hash encriptado.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    except Exception as e:
+        # Si bcrypt falla internamente, nos dirá el porqué
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Correo o contraseña incorrectos.",
-            headers={"WWW-Authenticate": "Bearer"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno en motor de encriptación: {str(e)}",
         )
 
-    # 4. Generar el Token de acceso JWT firmado
+    # 3. Generar Token
     access_token = security.crear_token_acceso(
         data={"sub": usuario.email, "usuario_id": usuario.id, "rol": usuario.rol}
     )
-
     return {"access_token": access_token, "token_type": "bearer"}
 
 
