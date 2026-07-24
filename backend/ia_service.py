@@ -3,10 +3,8 @@ import os
 import re
 import google.generativeai as genai
 
-# Configuración de clave (Poner tu API Key o configurarla en el sistema)
-GEMINI_API_KEY = os.getenv(
-    "GEMINI_API_KEY", "AQ.Ab8RN6JSlSAF-bfB4FVNOQRjSIyY97nzKDh9ly6S09FKVN3zKA"
-)
+# Leer la API Key desde la variable de entorno del sistema o de Render
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
