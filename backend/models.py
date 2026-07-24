@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 # Importación absoluta optimizada para Render
-from database import Base
+from backend.database import Base
 
 
 class Usuario(Base):

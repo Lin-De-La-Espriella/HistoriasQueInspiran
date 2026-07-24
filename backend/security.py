@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-import schemas
+from backend import models, schemas
 
 # Configuración de encriptación de contraseñas
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

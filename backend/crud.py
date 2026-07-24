@@ -1,7 +1,5 @@
 # Importación de módulos locales con ruta relativa (.)
-import models
-import schemas
-import security
+from backend import models, schemas, security
 
 # Importación de librerías externas
 from sqlalchemy.orm import Session
