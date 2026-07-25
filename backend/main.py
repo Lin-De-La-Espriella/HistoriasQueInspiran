@@ -236,6 +236,39 @@ def completar_mision_usuario(
 
     return mision_actualizada
 
+# ==========================================
+# SECCIÓN: creación automática de la misión
+# ==========================================
+
+@app.post("/usuarios/{usuario_id}/misiones/generar_ia")
+def crear_mision_personalizada_ia(usuario_id: int, db: Session = Depends(get_db)):
+    """
+    Endpoint que invoca a XiXi para crear una misión dinámica guardada en Supabase.
+    """
+    user = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    estado_arbol = user.arbol.estado_crecimiento if user.arbol else "semilla"
+    nivel = user.pasaporte.nivel_actual if user.pasaporte else 1
+
+    # Generación vía Groq Llama 3.3
+    datos_mision = ia_service.generar_mision_ia(
+        estado_arbol=estado_arbol, nivel_usuario=nivel
+    )
+
+    nueva_mision = models.Mision(
+        usuario_id=usuario_id,
+        titulo_mision=datos_mision.get("titulo_mision", "Desafío de Evolución"),
+        recompensa_puntos=datos_mision.get("recompensa_puntos", 50),
+        estado="pendiente",
+    )
+
+    db.add(nueva_mision)
+    db.commit()
+    db.refresh(nueva_mision)
+    return nueva_mision
+
 
 # ==========================================
 # SECCIÓN: LIBRO VIVO (AVANCE)

@@ -584,23 +584,17 @@ else:
     with tab_misiones:
         st.markdown("#### Desafíos de Sincronización")
 
-        if st.button("⚡ Generar Misión de Prueba (+50 XP)"):
-            mision_payload = {
-                "titulo_mision": (
-                    f"Reflexión Emocional #{st.session_state.get('mision_count', 1)}"
-                ),
-                "recompensa_puntos": 50,
-            }
-            res_gen = requests.post(
-                f"{API_URL}/usuarios/{usuario_id}/misiones/",
-                json=mision_payload,
-                headers=headers,
-            )
-            if res_gen.status_code in [200, 201]:
-                st.session_state["mision_count"] = (
-                    st.session_state.get("mision_count", 1) + 1
+        if st.button("👽 Solicitar Misión a XiXi (IA)"):
+            with st.spinner("XiXi está diseñando un desafío para tu nivel..."):
+                res_gen = requests.post(
+                    f"{API_URL}/usuarios/{usuario_id}/misiones/generar_ia",
+                    headers=headers,
                 )
-                st.rerun()
+                if res_gen.status_code in [200, 201]:
+                    st.toast("🎯 ¡Nueva Misión Asignada por XiXi!", icon="✨")
+                    st.rerun()
+                else:
+                    st.error("No se pudo conectar con el canal de misiones.")
 
         st.markdown("---")
 
