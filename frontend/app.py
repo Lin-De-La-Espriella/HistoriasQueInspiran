@@ -520,6 +520,35 @@ else:
                         st.session_state.messages.append(
                             {"role": "assistant", "content": mensaje_formateado}
                         )
+
+                        # --- NUEVA LÓGICA DE EVOLUCIÓN INTEGRADADA ---
+                        try:
+                            res_evo = requests.post(
+                                f"{API_URL}/usuarios/{usuario_id}/evolucionar?xp_ganado={xp_ganado}",
+                                headers=headers,
+                                timeout=10,
+                            )
+
+                            if res_evo.status_code == 200:
+                                datos_actualizados = res_evo.json()
+
+                                # Actualizamos el estado de la sesión para la UI
+                                st.session_state["xp_totales"] = datos_actualizados.get(
+                                    "xp_totales"
+                                )
+                                st.session_state["nivel"] = datos_actualizados.get(
+                                    "nivel_actual"
+                                )
+
+                                # Notificación visual del progreso
+                                st.toast(
+                                    f"✨ +{xp_ganado} XP Procesados | Nivel Actual: {st.session_state['nivel']}",
+                                    icon="🚀",
+                                )
+                        except Exception as e:
+                            st.error(f"Error de red al sincronizar evolución: {str(e)}")
+                        # ---------------------------------------------
+
                         st.rerun()
                     else:
                         st.error("Anomalía detectada. No se pudo enlazar con XiXi.")
