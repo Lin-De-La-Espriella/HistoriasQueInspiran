@@ -660,76 +660,64 @@ with col1:
                     else:
                         st.error("Anomalía detectada. No se pudo enlazar con XiXi.")
 
-    # --- TAB 2: MISIONES ---
-    with tab_misiones:
-        st.markdown("#### Desafíos de Sincronización")
+    # =========================================================
+# SECCIÓN: LISTADO Y PROCESAMIENTO DE MISIONES PENDIENTES
+# =========================================================
+st.markdown("### 🎯 Desafíos de Sincronización")
 
-        if st.button("👽 Solicitar Misión a XiXi (IA)"):
-            with st.spinner("XiXi está diseñando un desafío para tu nivel..."):
-                res_gen = requests.post(
-                    f"{API_URL}/usuarios/{usuario_id}/misiones/generar_ia",
-                    headers=headers,
+# Botón para solicitar nueva misión
+if st.button("👽 Solicitar Misión a XiXi (IA)"):
+    res_ia = requests.post(
+        f"{API_URL}/usuarios/{usuario_id}/misiones/generar_ia", headers=headers
+    )
+    if res_ia.status_code == 200:
+        st.toast("✨ ¡Nueva Misión encomendada por XiXi!", icon="🛸")
+        st.rerun()
+    else:
+        st.error("No se pudo conectar con el servidor de IA.")
+
+# Consulta de misiones del usuario
+res_misiones = requests.get(
+    f"{API_URL}/usuarios/{usuario_id}/misiones/", headers=headers
+)
+
+if res_misiones.status_code == 200:
+    misiones_lista = res_misiones.json()
+
+    # Filtrar solo misiones en estado pendiente
+    misiones_pendientes = [m for m in misiones_lista if m.get("estado") == "pendiente"]
+
+    if not misiones_pendientes:
+        st.info("No tienes desafíos pendientes. ¡Solicita uno nuevo a XiXi arriba! 🚀")
+    else:
+        # BUCLE CORRECTO: Itera cada misión pendiente individualmente
+        for mision in misiones_pendientes:
+            mision_id = mision.get("id")
+            titulo = mision.get("titulo_mision", "Desafío de Evolución")
+            recompensa = mision.get("recompensa_puntos", 50)
+
+            col_info, col_btn = st.columns([3, 1])
+
+            with col_info:
+                st.markdown(
+                    f"**{titulo}** | <span style='color: #00FFCC;'>+{recompensa} XP</span>",
+                    unsafe_allow_html=True,
                 )
-                if res_gen.status_code in [200, 201]:
-                    st.toast("🎯 ¡Nueva Misión Asignada por XiXi!", icon="✨")
-                    st.rerun()
-                else:
-                    # Muestra el código de error exacto enviado por Render
-                    st.error(f"⚠️ Error ({res_gen.status_code}): {res_gen.text}")
 
-        st.markdown("---")
+            with col_btn:
+                # El botón ahora reconoce la variable mision_id de forma limpia
+                if st.button(f"Procesar #{mision_id}", key=f"btn_mision_{mision_id}"):
+                    res_completar = requests.put(
+                        f"{API_URL}/usuarios/{usuario_id}/misiones/{mision_id}/completar",
+                        headers=headers,
+                    )
 
-        res_misiones = requests.get(
-            f"{API_URL}/usuarios/{usuario_id}/misiones/", headers=headers
-        )
-
-        if res_misiones.status_code == 200:
-            misiones = res_misiones.json()
-            if not misiones:
-                st.info(
-                    "No tienes misiones activas. Usa el botón de arriba para generar una."
-                )
-            else:
-                for m in misiones:
-                    col_m1, col_m2 = st.columns([3, 1])
-                    with col_m1:
-                        st.write(
-                            f"**{m['titulo_mision']}** | Recompensa:"
-                            f" `+{m['recompensa_puntos']} XP`"
+                    if res_completar.status_code == 200:
+                        st.balloons()
+                        st.toast(
+                            "🎉 ¡Desafío Sincronizado! Puntos de XP canalizados.",
+                            icon="🚀",
                         )
-                    with col_m2:
-                        if m["estado"] == "completada":
-                            st.success("✅ Sincronizada")
-                        else:
-                            # --- PROCESAMIENTO DE MISIÓN CON CELEBRACIÓN VISUAL ---
-                            if st.button(
-                                f"Procesar #{mision_id}", key=f"btn_mision_{mision_id}"
-                            ):
-                                res_completar = requests.put(
-                                    f"{API_URL}/usuarios/{usuario_id}/misiones/{mision_id}/completar",
-                                    headers=headers,
-                                )
-
-                                if res_completar.status_code == 200:
-                                    data_res = res_completar.json()
-
-                                    # 1. Animación principal de éxito
-                                    st.balloons()  # O usa st.snow() según el tono del logro
-
-                                    # 2. Notificación flotante de alto impacto (Toast)
-                                    st.toast(
-                                        "🎉 ¡Desafío Sincronizado! Puntos de XP canalizados al Pasaporte.",
-                                        icon="🚀",
-                                    )
-
-                                    # 3. Banner temporal de victoria
-                                    st.success(
-                                        "✅ **¡Misión Completada con Éxito!** Tu Bio-Estructura ha absorbido la energía."
-                                    )
-
-                                    # Recargar para refrescar la interfaz con el nuevo Nivel/XP
-                                    st.rerun()
-                                else:
-                                    st.error(
-                                        "⚠️ Error en la sincronización con el servidor."
-                                    )
+                        st.rerun()
+                    else:
+                        st.error("⚠️ Error en la sincronización con el servidor.")
