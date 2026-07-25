@@ -455,37 +455,61 @@ else:
     # --- 2. INDICADORES VISUALES ---
     col1, col2 = st.columns(2)
 
-    with col1:
-        st.markdown("### 🎓 Pasaporte de Nivel")
+    # =========================================================
+# SECCIÓN: PASAPORTE DE NIVEL Y PROGRESO
+# =========================================================
+with col1:
+    st.markdown("### 🎓 Pasaporte de Nivel")
 
-        xp_inicio_nivel = (nivel_actual - 1) * 100
-        xp_meta_siguiente = nivel_actual * 100
+    # 1. CÁLCULO DINÁMICO DEL NIVEL
+    nivel_real = (xp_actual // 100) + 1
 
-        xp_nivel_actual = max(0, xp_actual - xp_inicio_nivel)
-        xp_requeridos_nivel = xp_meta_siguiente - xp_inicio_nivel
-        xp_faltantes = max(0, xp_meta_siguiente - xp_actual)
+    # ---------------------------------------------------------
+    # 🎯 PASO 2: DETECTOR DE ASCENSO DE NIVEL (UBICACIÓN AQUÍ)
+    # ---------------------------------------------------------
+    if "nivel_previo" not in st.session_state:
+        st.session_state["nivel_previo"] = nivel_real
 
-        porcentaje_progreso = min(1.0, max(0.0, xp_nivel_actual / xp_requeridos_nivel))
-
-        st.metric(
-            label="Ascenso de Nivel",
-            value=f"Nivel {nivel_actual}",
-            delta=f"{xp_actual} XP Totales",
+    # Dispara la celebración visual si el nivel actual es mayor al previo
+    if nivel_real > st.session_state["nivel_previo"]:
+        st.balloons()
+        st.toast(f"🏆 ¡ASCENSO DE NIVEL! Ahora eres Nivel {nivel_real}", icon="🔥")
+        st.info(
+            f"✨ **¡Felicidades, Lindley!** Has alcanzado el **Nivel {nivel_real}**. Tu Bio-Estructura ha evolucionado."
         )
+        st.session_state["nivel_previo"] = nivel_real
+    # ---------------------------------------------------------
 
-        escalones = "🪜 " * nivel_actual
-        st.write(f"**Escalera de Progreso:** {escalones} 🧗")
+    # 2. CÁLCULO DE METRICAS VISUALES
+    xp_inicio_nivel = (nivel_real - 1) * 100
+    xp_meta_siguiente = nivel_real * 100
 
-        st.progress(porcentaje_progreso)
+    xp_nivel_actual = max(0, xp_actual - xp_inicio_nivel)
+    xp_requeridos_nivel = xp_meta_siguiente - xp_inicio_nivel
+    xp_faltantes = max(0, xp_meta_siguiente - xp_actual)
 
-        st.markdown(
-            f"""
-            <p style='color: #FFFFFF; font-size: 16px; font-weight: bold; margin-top: 8px;'>
-                🚀 Te faltan <span style='color: #00FFCC;'>{xp_faltantes} XP</span> para alcanzar el Nivel {nivel_actual + 1}
-            </p>
-            """,
-            unsafe_allow_html=True,
-        )
+    porcentaje_progreso = min(1.0, max(0.0, xp_nivel_actual / xp_requeridos_nivel))
+
+    # 3. RENDERIZADO DE INTERFAZ
+    st.metric(
+        label="Ascenso de Nivel",
+        value=f"Nivel {nivel_real}",
+        delta=f"{xp_actual} XP Totales",
+    )
+
+    escalones = "🪜 " * nivel_real
+    st.write(f"**Escalera de Progreso:** {escalones} 🧗")
+
+    st.progress(porcentaje_progreso)
+
+    st.markdown(
+        f"""
+        <p style='color: #FFFFFF; font-size: 16px; font-weight: bold; margin-top: 8px;'>
+            🚀 Te faltan <span style='color: #00FFCC;'>{xp_faltantes} XP</span> para alcanzar el Nivel {nivel_real + 1}
+        </p>
+        """,
+        unsafe_allow_html=True,
+    )
 
     with col2:
         total_paginas = 5
@@ -677,15 +701,35 @@ else:
                         if m["estado"] == "completada":
                             st.success("✅ Sincronizada")
                         else:
+                            # --- PROCESAMIENTO DE MISIÓN CON CELEBRACIÓN VISUAL ---
                             if st.button(
-                                f"Procesar #{m['id']}", key=f"mision_{m['id']}"
+                                f"Procesar #{mision_id}", key=f"btn_mision_{mision_id}"
                             ):
-                                res_complete = requests.put(
-                                    f"{API_URL}/usuarios/{usuario_id}/misiones/{m['id']}/completar",
+                                res_completar = requests.put(
+                                    f"{API_URL}/usuarios/{usuario_id}/misiones/{mision_id}/completar",
                                     headers=headers,
                                 )
-                                if res_complete.status_code == 200:
-                                    st.success("¡Desafío completado!")
+
+                                if res_completar.status_code == 200:
+                                    data_res = res_completar.json()
+
+                                    # 1. Animación principal de éxito
+                                    st.balloons()  # O usa st.snow() según el tono del logro
+
+                                    # 2. Notificación flotante de alto impacto (Toast)
+                                    st.toast(
+                                        "🎉 ¡Desafío Sincronizado! Puntos de XP canalizados al Pasaporte.",
+                                        icon="🚀",
+                                    )
+
+                                    # 3. Banner temporal de victoria
+                                    st.success(
+                                        "✅ **¡Misión Completada con Éxito!** Tu Bio-Estructura ha absorbido la energía."
+                                    )
+
+                                    # Recargar para refrescar la interfaz con el nuevo Nivel/XP
                                     st.rerun()
                                 else:
-                                    st.error("Fallo de procesamiento.")
+                                    st.error(
+                                        "⚠️ Error en la sincronización con el servidor."
+                                    )
