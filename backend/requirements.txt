@@ -12,3 +12,4 @@ google-genai
 requests
 python-dotenv
 email-validator
+groq

@@ -13,8 +13,16 @@ st.set_page_config(page_title="Historias que Inspiran®", page_icon="🌱", layo
 # Este bloque inyecta las credenciales de sesión automáticamente.
 # Comenta o elimina este bloque antes del despliegue final a producción.
 
-if st.session_state.get("autenticado") is not True:
+# ---------------------------------------------------------
+# 🚀 AUTO-LOGIN ROBUSTO (DEV MODE)
+# ---------------------------------------------------------
+# Sincroniza todas las posibles llaves de autenticación y fuerza la redirección.
+
+if "autenticado" not in st.session_state or not st.session_state["autenticado"]:
     st.session_state["autenticado"] = True
+    st.session_state["logged_in"] = (
+        True  # Compatibilidad por si el formulario usa 'logged_in'
+    )
     st.session_state["usuario_id"] = 1
     st.session_state["nombre_usuario"] = "Lindley"
     st.session_state["nivel"] = 3
@@ -22,8 +30,11 @@ if st.session_state.get("autenticado") is not True:
     st.session_state["fase_arbol"] = "1. Semilla"
     st.session_state["mision_count"] = 1
 
-    # Aviso visual discreto para recordar que estamos en modo pruebas
-    st.sidebar.warning("⚙️ Dev Mode: Auto-Login Activo")
+    # Forzar la recarga para que Streamlit entre directo al Dashboard
+    st.rerun()
+
+# Notificación discreta en la barra lateral
+st.sidebar.warning("⚙️ Dev Mode: Auto-Login Activo")
 # ---------------------------------------------------------
 
 # ==========================================
