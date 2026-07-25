@@ -594,7 +594,8 @@ else:
                     st.toast("🎯 ¡Nueva Misión Asignada por XiXi!", icon="✨")
                     st.rerun()
                 else:
-                    st.error("No se pudo conectar con el canal de misiones.")
+                    # Muestra el código de error exacto enviado por Render
+                    st.error(f"⚠️ Error ({res_gen.status_code}): {res_gen.text}")
 
         st.markdown("---")
 
@@ -606,8 +607,7 @@ else:
             misiones = res_misiones.json()
             if not misiones:
                 st.info(
-                    "No tienes misiones activas. Usa el botón de arriba para generar"
-                    " una."
+                    "No tienes misiones activas. Usa el botón de arriba para generar una."
                 )
             else:
                 for m in misiones:
