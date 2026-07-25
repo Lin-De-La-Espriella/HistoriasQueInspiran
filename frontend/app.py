@@ -492,13 +492,35 @@ else:
         hojas_escritas = "📄 " * paginas_completadas
         hojas_vacias = "⬜ " * (total_paginas - paginas_completadas)
 
+    
         st.markdown("### 📖 Libro Vivo")
+
+        res_libro = requests.get(
+            f"{API_URL}/usuarios/{usuario_id}/libro", headers=headers
+        )
+        capitulo = 1
+        paginas = 1
+
+        if res_libro.status_code == 200:
+            datos_libro = res_libro.json()
+            capitulo = datos_libro.get("capitulo_actual", 1)
+            paginas = datos_libro.get("paginas_completadas", 1)
+
         st.metric(
             label="Progreso de Historia",
-            value=f"Capítulo {capitulo_actual}",
-            delta=f"{paginas_completadas}/{total_paginas} Hojas Llenas",
+            value=f"Capítulo {capitulo}",
+            delta=f"↑ {paginas}/5 Hojas Llenas",
         )
-        st.write(f"**Páginas Escribiéndose:** {hojas_escritas}{hojas_vacias}")
+
+        iconos_paginas = "📄 " * paginas + "▫️ " * (5 - paginas)
+        st.write(f"**Páginas Escribiéndose:** {iconos_paginas}")
+
+        # --- EXPANDER PARA LEER PÁGINAS ESCRITAS POR IA ---
+        with st.expander("📖 Leer las páginas de mi historia..."):
+            st.info(f"**Capítulo {capitulo}: Los Primeros Pasos del Líder**")
+            st.write(
+                f"📄 **Página {paginas}:** *\"Al completar la misión 'Desarrollo de Raíces', he sentado las bases operativas y técnicas para mi proyecto. Cada decisión refuerza mi resiliencia en la ingeniería y el emprendimiento.\"*"
+            )
 
     st.markdown("---")
 
