@@ -10,8 +10,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-
-# Importación absoluta optimizada para Render
 from backend.database import Base
 
 
@@ -29,9 +27,11 @@ class Usuario(Base):
     # Relaciones - Arquitectura Gamificada e IA
     pasaporte = relationship("Pasaporte", back_populates="dueño", uselist=False)
     arbol = relationship("ArbolProgreso", back_populates="dueño", uselist=False)
-    misiones = relationship("MisionUsuario", back_populates="dueño")
     libro_vivo = relationship("LibroVivo", back_populates="dueño", uselist=False)
     interacciones = relationship("InteraccionGuia", back_populates="dueño")
+
+    # Apuntando correctamente al modelo Mision
+    misiones = relationship("Mision", back_populates="dueño")
 
 
 class LibroVivo(Base):
@@ -87,13 +87,14 @@ class ArbolProgreso(Base):
     dueño = relationship("Usuario", back_populates="arbol")
 
 
-class MisionUsuario(Base):
-    __tablename__ = "misiones_usuarios"
+class Mision(Base):
+    __tablename__ = "misiones"
 
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"))
     titulo_mision = Column(String(150), nullable=False)
+    descripcion = Column(Text, nullable=False)
     estado = Column(String(20), default="pendiente")
-    recompensa_puntos = Column(Integer, default=10)
+    recompensa_puntos = Column(Integer, default=50)
 
     dueño = relationship("Usuario", back_populates="misiones")

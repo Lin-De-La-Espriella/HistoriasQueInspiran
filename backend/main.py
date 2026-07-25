@@ -174,6 +174,17 @@ def listar_usuarios(skip: int = 0, limit: int = 100, db: Session = Depends(get_d
     return crud.obtener_usuarios(db=db, skip=skip, limit=limit)
 
 
+@app.get("/usuarios/{usuario_id}/misiones/")
+def obtener_misiones_usuario(usuario_id: int, db: Session = Depends(get_db)):
+    """
+    Endpoint para listar las misiones activas del usuario.
+    """
+    misiones = (
+        db.query(models.Mision).filter(models.Mision.usuario_id == usuario_id).all()
+    )
+    return misiones
+
+
 # ==========================================
 # SECCIÓN: GAMIFICACIÓN (MISIONES)
 # ==========================================
