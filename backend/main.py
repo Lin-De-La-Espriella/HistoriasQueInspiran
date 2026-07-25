@@ -4,6 +4,8 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy.orm import Session
 
 # Imports directos (compatibles con Root Directory = backend en Render y ejecución local)
 from backend import models, schemas, crud, security, ia_service
@@ -324,4 +326,36 @@ def guardar_interaccion(
         "emocion_detectada": analisis_ia.get("emocion_detectada", "N/A"),
         "xp_ganado": xp_ganado,
         "energia_ganada": energia_ganada,
+    }
+
+
+@app.post("/usuarios/{usuario_id}/evolucionar")
+def evaluar_evolucion_usuario(
+    usuario_id: int, xp_ganado: int, db: Session = Depends(get_db)
+):
+    """
+    Evalúa de forma lógica el progreso del usuario, actualiza su XP,
+    calcula su nuevo nivel y ajusta la fase de su bio-estructura.
+    """
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # Acumular XP (asumiendo que el modelo tiene campos xp_totales y nivel)
+    usuario.xp_totales = (usuario.xp_totales or 0) + xp_ganado
+
+    # Regla de negocio para escalado de niveles (Ej: 100 XP por nivel)
+    nuevo_nivel = (usuario.xp_totales // 100) + 1
+
+    if nuevo_nivel > (usuario.nivel or 1):
+        usuario.nivel = nuevo_nivel
+        # Aquí podemos disparar la evolución de la bio-estructura asociada
+
+    db.commit()
+    db.refresh(usuario)
+
+    return {
+        "mensaje": "Evolución procesada con éxito bajo mejora continua.",
+        "xp_totales": usuario.xp_totales,
+        "nivel_actual": usuario.nivel,
     }
