@@ -492,7 +492,6 @@ else:
         hojas_escritas = "📄 " * paginas_completadas
         hojas_vacias = "⬜ " * (total_paginas - paginas_completadas)
 
-    
         st.markdown("### 📖 Libro Vivo")
 
         res_libro = requests.get(
@@ -515,12 +514,36 @@ else:
         iconos_paginas = "📄 " * paginas + "▫️ " * (5 - paginas)
         st.write(f"**Páginas Escribiéndose:** {iconos_paginas}")
 
-        # --- EXPANDER PARA LEER PÁGINAS ESCRITAS POR IA ---
+        # --- EXPANDER PARA LEER PÁGINAS REALES GENERADAS ---
         with st.expander("📖 Leer las páginas de mi historia..."):
-            st.info(f"**Capítulo {capitulo}: Los Primeros Pasos del Líder**")
-            st.write(
-                f"📄 **Página {paginas}:** *\"Al completar la misión 'Desarrollo de Raíces', he sentado las bases operativas y técnicas para mi proyecto. Cada decisión refuerza mi resiliencia en la ingeniería y el emprendimiento.\"*"
+            st.info(f"**Capítulo {capitulo}: La Bitácora del Explorador**")
+
+            # Consultamos las misiones completadas para reconstruir la historia
+            res_misiones = requests.get(
+                f"{API_URL}/usuarios/{usuario_id}/misiones/", headers=headers
             )
+
+            if res_misiones.status_code == 200:
+                misiones_list = res_misiones.json()
+                completadas = [
+                    m for m in misiones_list if m.get("estado") == "completada"
+                ]
+
+                if not completadas:
+                    st.caption(
+                        "Tu diario aún está en blanco. Completa misiones para escribir tus primeros capítulos."
+                    )
+                else:
+                    for i, m in enumerate(completadas, start=1):
+                        st.markdown(
+                            f"""
+                            **📄 Página {i}:** *Hito Alcanzado — {m.get("titulo_mision")}*  
+                            > "{m.get("descripcion", "Evolución registrada en la bio-estructura.")}"
+                            ---
+                            """
+                        )
+            else:
+                st.caption("Sincronizando el canal de lectura...")
 
     st.markdown("---")
 
