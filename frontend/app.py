@@ -7,6 +7,25 @@ from streamlit_lottie import st_lottie
 # Configuración de la página
 st.set_page_config(page_title="Historias que Inspiran®", page_icon="🌱", layout="wide")
 
+# ---------------------------------------------------------
+# 🚀 BYPASS DE DESARROLLO: AUTO-LOGIN ACTIVO
+# ---------------------------------------------------------
+# Este bloque inyecta las credenciales de sesión automáticamente.
+# Comenta o elimina este bloque antes del despliegue final a producción.
+
+if st.session_state.get("autenticado") is not True:
+    st.session_state["autenticado"] = True
+    st.session_state["usuario_id"] = 1
+    st.session_state["nombre_usuario"] = "Lindley"
+    st.session_state["nivel"] = 3
+    st.session_state["xp_totales"] = 235
+    st.session_state["fase_arbol"] = "1. Semilla"
+    st.session_state["mision_count"] = 1
+
+    # Aviso visual discreto para recordar que estamos en modo pruebas
+    st.sidebar.warning("⚙️ Dev Mode: Auto-Login Activo")
+# ---------------------------------------------------------
+
 # ==========================================
 # 📍 ENRUTAMIENTO DE ENTORNO
 # ==========================================
