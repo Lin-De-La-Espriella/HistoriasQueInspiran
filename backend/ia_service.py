@@ -144,3 +144,41 @@ def generar_mision_ia(estado_arbol: str, nivel_usuario: int) -> dict:
             "descripcion": "Define el entregable clave de tu jornada.",
             "recompensa_puntos": 50,
         }
+
+
+def generar_pagina_libro_ia(titulo_hito: str, contexto_usuario: str) -> str:
+    """
+    Sintetiza la experiencia y reflexiones del usuario en una página
+    narrativa e inspiradora para su 'Libro Vivo'.
+    """
+    api_key = os.getenv("GROQ_API_KEY", "").strip()
+    if not api_key:
+        return (
+            f"Hoy superé un gran desafío: {titulo_hito}. Un paso firme en mi historia."
+        )
+
+    try:
+        client = Groq(api_key=api_key)
+
+        prompt_sistema = """
+        Eres un biógrafo experto y mentor de liderazgo. Tu tarea es tomar un logro u objetivo completado 
+        por el usuario y convertirlo en un párrafo reflexivo, motivador e inspirador (máximo 80 palabras).
+        Escribe siempre en PRIMERA PERSONA ("Hoy comprendí...", "Al superar este reto...").
+        """
+
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": prompt_sistema},
+                {
+                    "role": "user",
+                    "content": f"El logro completado fue: '{titulo_hito}'. Contexto extra: '{contexto_usuario}'. Escribe mi página de diario.",
+                },
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.7,
+        )
+
+        return chat_completion.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"❌ Error al redactar página del Libro Vivo: {e}")
+        return f"Con el logro '{titulo_hito}', marco un hito clave en mi camino de evolución personal e ingenieril."

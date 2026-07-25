@@ -200,7 +200,7 @@ def obtener_misiones_usuario(usuario_id: int, db: Session = Depends(get_db)):
 
 @app.put("/usuarios/{usuario_id}/misiones/{mision_id}/completar", tags=["Gamificación"])
 def completar_mision(usuario_id: int, mision_id: int, db: Session = Depends(get_db)):
-    """Endpoint para marcar una misión como completada y actualizar bio-estructura."""
+    """Endpoint para marcar una misión como completada y escribir en el Libro Vivo"""
     mision = (
         db.query(models.Mision)
         .filter(models.Mision.id == mision_id, models.Mision.usuario_id == usuario_id)
@@ -213,10 +213,10 @@ def completar_mision(usuario_id: int, mision_id: int, db: Session = Depends(get_
     if mision.estado == "completada":
         return {"mensaje": "La misión ya estaba completada", "mision": mision}
 
+    # 1. Marcar misión como completada
     mision.estado = "completada"
-    db.commit()
 
-    # Procesar actualización de nivel y árbol en cascada
+    # 2. Asignar XP y actualizar árbol
     db_usuario = (
         db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
     )
@@ -225,8 +225,19 @@ def completar_mision(usuario_id: int, mision_id: int, db: Session = Depends(get_
         if db_usuario.arbol:
             evaluar_y_actualizar_arbol(db, db_usuario.arbol, db_usuario.pasaporte)
 
+        # 3. AVANCE AUTOMÁTICO DEL LIBRO VIVO
+        if db_usuario.libro_vivo:
+            db_usuario.libro_vivo.paginas_completadas += 1
+            if db_usuario.libro_vivo.paginas_completadas >= 5:
+                db_usuario.libro_vivo.capitulo_actual += 1
+                db_usuario.libro_vivo.paginas_completadas = 0
+
+    db.commit()
     db.refresh(mision)
-    return {"mensaje": "Misión completada con éxito", "mision": mision}
+    return {
+        "mensaje": "Misión completada y página del Libro Vivo registrada",
+        "mision": mision,
+    }
 
 
 # ==========================================
