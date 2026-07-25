@@ -1,10 +1,8 @@
 from datetime import timedelta
-from typing import List, Optional
+from typing import List
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
-from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 # Imports directos (compatibles con Root Directory = backend en Render y ejecución local)
@@ -40,9 +38,7 @@ class LoginSchema(BaseModel):
 
 @app.post("/auth/login", response_model=schemas.Token, tags=["Autenticación"])
 def login_plataforma_json(login_data: LoginSchema, db: Session = Depends(get_db)):
-    """
-    Endpoint exclusivo para Streamlit: Recibe JSON puro y evita conflictos de formularios.
-    """
+    """Endpoint exclusivo para Streamlit: Recibe JSON puro y evita conflictos de formularios."""
     email = login_data.email.strip().lower()
     password = login_data.password.strip()
 
@@ -65,19 +61,14 @@ def login_plataforma_json(login_data: LoginSchema, db: Session = Depends(get_db)
         expires_delta=access_token_expires,
     )
 
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-    }
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @app.post("/token", response_model=schemas.Token, tags=["Autenticación"])
 def login_para_obtener_token(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
-    """
-    Endpoint exclusivo para Swagger UI / OAuth2: Recibe Form-Data.
-    """
+    """Endpoint exclusivo para Swagger UI / OAuth2: Recibe Form-Data."""
     usuario = crud.obtener_usuario_por_email(db, email=form_data.username.strip())
     if not usuario or not security.verificar_password(
         form_data.password.strip(), usuario.hashed_password.strip()
@@ -100,25 +91,12 @@ def login_para_obtener_token(
 
 
 def calcular_nivel_por_xp(xp_totales: int) -> int:
-    """
-    Calcula el nivel dinámico usando la curva progresiva:
-    XP acumulados necesarios para Nivel N = 50 * N * (N - 1)
-    """
-    nivel = 1
-    xp_necesaria = 0
-    while True:
-        xp_siguiente = nivel * 100
-        if xp_totales < xp_necesaria + xp_siguiente:
-            break
-        xp_necesaria += xp_siguiente
-        nivel += 1
-    return nivel
+    """Calcula el nivel dinámico: (XP Totales // 100) + 1"""
+    return (xp_totales // 100) + 1
 
 
 def evaluar_y_actualizar_arbol(db, arbol_obj, pasaporte_obj):
-    """
-    Modelado Lógico para la evolución de 10 Fases Biológicas en función del Nivel.
-    """
+    """Modelado Lógico para la evolución de 10 Fases Biológicas en función del Nivel."""
     pasaporte_obj.nivel_actual = calcular_nivel_por_xp(pasaporte_obj.puntos_experiencia)
     nivel = pasaporte_obj.nivel_actual
 
@@ -174,105 +152,14 @@ def listar_usuarios(skip: int = 0, limit: int = 100, db: Session = Depends(get_d
     return crud.obtener_usuarios(db=db, skip=skip, limit=limit)
 
 
-@app.put("/usuarios/{usuario_id}/misiones/{mision_id}/completar")
-def completar_mision(usuario_id: int, mision_id: int, db: Session = Depends(get_db)):
-    """
-    Endpoint para marcar una misión como completada.
-    Se ha ajustado la seguridad temporalmente para permitir el flujo en Modo Dev.
-    """
-    mision = (
-        db.query(models.Mision)
-        .filter(models.Mision.id == mision_id, models.Mision.usuario_id == usuario_id)
-        .first()
-    )
-
-    if not mision:
-        raise HTTPException(status_code=404, detail="Misión no encontrada")
-
-    if mision.estado == "completada":
-        return {"mensaje": "La misión ya estaba completada", "mision": mision}
-
-    # Actualizamos el estado a completada
-    mision.estado = "completada"
-    db.commit()
-    db.refresh(mision)
-
-    return {"mensaje": "Misión completada con éxito", "mision": mision}
-
-
 # ==========================================
-# SECCIÓN: GAMIFICACIÓN (MISIONES)
+# SECCIÓN: GAMIFICACIÓN (MISIONES - MODO DEV ACTIVO)
 # ==========================================
 
 
-@app.post(
-    "/usuarios/{usuario_id}/misiones/",
-    response_model=schemas.MisionRespuesta,
-    status_code=status.HTTP_201_CREATED,
-    tags=["Gamificación"],
-)
-def asignarle_mision(
-    usuario_id: int,
-    mision: schemas.MisionCrear,
-    db: Session = Depends(get_db),
-    usuario_actual: dict = Depends(security.obtener_usuario_actual),
-):
-    return crud.crear_mision_usuario(db=db, mision=mision, usuario_id=usuario_id)
-
-
-@app.get(
-    "/usuarios/{usuario_id}/misiones/",
-    response_model=List[schemas.MisionRespuesta],
-    tags=["Gamificación"],
-)
-def ver_misiones(
-    usuario_id: int,
-    db: Session = Depends(get_db),
-    usuario_actual: dict = Depends(security.obtener_usuario_actual),
-):
-    return crud.obtener_misiones_usuario(db=db, usuario_id=usuario_id)
-
-
-@app.put(
-    "/usuarios/{usuario_id}/misiones/{mision_id}/completar",
-    response_model=schemas.MisionRespuesta,
-    tags=["Gamificación"],
-)
-def completar_mision_usuario(
-    usuario_id: int,
-    mision_id: int,
-    db: Session = Depends(get_db),
-    usuario_actual: dict = Depends(security.obtener_usuario_actual),
-):
-    mision_actualizada = crud.completar_mision(
-        db=db, usuario_id=usuario_id, mision_id=mision_id
-    )
-
-    if not mision_actualizada:
-        raise HTTPException(
-            status_code=400,
-            detail="Operación rechazada: La misión no existe o ya fue reclamada.",
-        )
-
-    db_usuario = (
-        db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
-    )
-    if db_usuario and db_usuario.arbol and db_usuario.pasaporte:
-        evaluar_y_actualizar_arbol(db, db_usuario.arbol, db_usuario.pasaporte)
-
-    return mision_actualizada
-
-
-# ==========================================
-# SECCIÓN: creación automática de la misión
-# ==========================================
-
-
-@app.post("/usuarios/{usuario_id}/misiones/generar_ia")
+@app.post("/usuarios/{usuario_id}/misiones/generar_ia", tags=["Gamificación"])
 def crear_mision_personalizada_ia(usuario_id: int, db: Session = Depends(get_db)):
-    """
-    Endpoint que invoca a XiXi vía Groq Cloud para crear una misión dinámica guardada en Supabase.
-    """
+    """Endpoint que invoca a XiXi vía Groq Cloud para crear una misión dinámica."""
     user = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -280,12 +167,10 @@ def crear_mision_personalizada_ia(usuario_id: int, db: Session = Depends(get_db)
     estado_arbol = user.arbol.estado_crecimiento if user.arbol else "semilla"
     nivel = user.pasaporte.nivel_actual if user.pasaporte else 1
 
-    # Invocación a Groq (Llama 3.3 70B)
     datos_mision = ia_service.generar_mision_ia(
         estado_arbol=estado_arbol, nivel_usuario=nivel
     )
 
-    # Creación del modelo con TODOS los campos obligatorios mapeados
     nueva_mision = models.Mision(
         usuario_id=usuario_id,
         titulo_mision=datos_mision.get("titulo_mision", "Desafío de Evolución"),
@@ -304,6 +189,46 @@ def crear_mision_personalizada_ia(usuario_id: int, db: Session = Depends(get_db)
     return nueva_mision
 
 
+@app.get("/usuarios/{usuario_id}/misiones/", tags=["Gamificación"])
+def obtener_misiones_usuario(usuario_id: int, db: Session = Depends(get_db)):
+    """Endpoint para listar misiones (Seguridad desactivada temporalmente para Dev Mode)."""
+    misiones = (
+        db.query(models.Mision).filter(models.Mision.usuario_id == usuario_id).all()
+    )
+    return misiones
+
+
+@app.put("/usuarios/{usuario_id}/misiones/{mision_id}/completar", tags=["Gamificación"])
+def completar_mision(usuario_id: int, mision_id: int, db: Session = Depends(get_db)):
+    """Endpoint para marcar una misión como completada y actualizar bio-estructura."""
+    mision = (
+        db.query(models.Mision)
+        .filter(models.Mision.id == mision_id, models.Mision.usuario_id == usuario_id)
+        .first()
+    )
+
+    if not mision:
+        raise HTTPException(status_code=404, detail="Misión no encontrada")
+
+    if mision.estado == "completada":
+        return {"mensaje": "La misión ya estaba completada", "mision": mision}
+
+    mision.estado = "completada"
+    db.commit()
+
+    # Procesar actualización de nivel y árbol en cascada
+    db_usuario = (
+        db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    )
+    if db_usuario and db_usuario.pasaporte:
+        db_usuario.pasaporte.puntos_experiencia += mision.recompensa_puntos
+        if db_usuario.arbol:
+            evaluar_y_actualizar_arbol(db, db_usuario.arbol, db_usuario.pasaporte)
+
+    db.refresh(mision)
+    return {"mensaje": "Misión completada con éxito", "mision": mision}
+
+
 # ==========================================
 # SECCIÓN: LIBRO VIVO (AVANCE)
 # ==========================================
@@ -317,6 +242,7 @@ def crear_mision_personalizada_ia(usuario_id: int, db: Session = Depends(get_db)
 def escribir_pagina_libro(
     usuario_id: int,
     db: Session = Depends(get_db),
+    # NOTA: Este aún requiere Token, evalúa si lo usarás en Dev Mode
     usuario_actual: dict = Depends(security.obtener_usuario_actual),
 ):
     libro = crud.obtener_libro_vivo(db=db, usuario_id=usuario_id)
@@ -348,7 +274,8 @@ def guardar_interaccion(
     usuario_id: int,
     interaccion: schemas.InteraccionCrear,
     db: Session = Depends(get_db),
-    usuario_actual: dict = Depends(security.obtener_usuario_actual),
+    # NOTA: Remueve la dependencia si presentas 401 Unauthorized en el chat
+    # usuario_actual: dict = Depends(security.obtener_usuario_actual),
 ):
     db_usuario = (
         db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
@@ -378,12 +305,9 @@ def guardar_interaccion(
 
     if db_usuario.pasaporte:
         db_usuario.pasaporte.puntos_experiencia += xp_ganado
-        nuevo_nivel = (db_usuario.pasaporte.puntos_experiencia // 100) + 1
-        db_usuario.pasaporte.nivel_actual = nuevo_nivel
-
-    if db_usuario.arbol:
-        db_usuario.arbol.energia_vital += energia_ganada
-        evaluar_y_actualizar_arbol(db, db_usuario.arbol, db_usuario.pasaporte)
+        if db_usuario.arbol:
+            db_usuario.arbol.energia_vital += energia_ganada
+            evaluar_y_actualizar_arbol(db, db_usuario.arbol, db_usuario.pasaporte)
 
     db.commit()
 
@@ -396,33 +320,30 @@ def guardar_interaccion(
     }
 
 
-@app.post("/usuarios/{usuario_id}/evolucionar")
+@app.post("/usuarios/{usuario_id}/evolucionar", tags=["Gamificación"])
 def evaluar_evolucion_usuario(
     usuario_id: int, xp_ganado: int, db: Session = Depends(get_db)
 ):
-    """
-    Evalúa de forma lógica el progreso del usuario, actualiza su XP,
-    calcula su nuevo nivel y ajusta la fase de su bio-estructura.
-    """
-    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
-    if not usuario:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    """Endpoint corregido para acceder correctamente a las relaciones del modelo"""
+    usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
 
-    # Acumular XP (asumiendo que el modelo tiene campos xp_totales y nivel)
-    usuario.xp_totales = (usuario.xp_totales or 0) + xp_ganado
+    if not usuario or not usuario.pasaporte:
+        raise HTTPException(status_code=404, detail="Usuario o Pasaporte no encontrado")
 
-    # Regla de negocio para escalado de niveles (Ej: 100 XP por nivel)
-    nuevo_nivel = (usuario.xp_totales // 100) + 1
+    usuario.pasaporte.puntos_experiencia += xp_ganado
 
-    if nuevo_nivel > (usuario.nivel or 1):
-        usuario.nivel = nuevo_nivel
-        # Aquí podemos disparar la evolución de la bio-estructura asociada
+    if usuario.arbol:
+        evaluar_y_actualizar_arbol(db, usuario.arbol, usuario.pasaporte)
+    else:
+        usuario.pasaporte.nivel_actual = calcular_nivel_por_xp(
+            usuario.pasaporte.puntos_experiencia
+        )
 
     db.commit()
-    db.refresh(usuario)
+    db.refresh(usuario.pasaporte)
 
     return {
         "mensaje": "Evolución procesada con éxito bajo mejora continua.",
-        "xp_totales": usuario.xp_totales,
-        "nivel_actual": usuario.nivel,
+        "xp_totales": usuario.pasaporte.puntos_experiencia,
+        "nivel_actual": usuario.pasaporte.nivel_actual,
     }
