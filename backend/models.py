@@ -1,4 +1,13 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, JSON
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    JSON,
+    Text,
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -43,9 +52,12 @@ class InteraccionGuia(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"))
-    personaje = Column(String(20), nullable=False)
-    mensaje_usuario = Column(String(500), nullable=False)
-    respuesta_guia = Column(String(1000), nullable=False)
+    personaje = Column(String(50), default="xixi", nullable=False)
+
+    # Se utiliza Text para permitir almacenamiento ilimitado de caracteres
+    mensaje_usuario = Column(Text, nullable=False)
+    respuesta_guia = Column(Text, nullable=False)
+
     fecha_interaccion = Column(DateTime(timezone=True), server_default=func.now())
 
     dueño = relationship("Usuario", back_populates="interacciones")
