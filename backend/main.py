@@ -174,15 +174,30 @@ def listar_usuarios(skip: int = 0, limit: int = 100, db: Session = Depends(get_d
     return crud.obtener_usuarios(db=db, skip=skip, limit=limit)
 
 
-@app.get("/usuarios/{usuario_id}/misiones/")
-def obtener_misiones_usuario(usuario_id: int, db: Session = Depends(get_db)):
+@app.put("/usuarios/{usuario_id}/misiones/{mision_id}/completar")
+def completar_mision(usuario_id: int, mision_id: int, db: Session = Depends(get_db)):
     """
-    Endpoint para listar las misiones activas del usuario.
+    Endpoint para marcar una misión como completada.
+    Se ha ajustado la seguridad temporalmente para permitir el flujo en Modo Dev.
     """
-    misiones = (
-        db.query(models.Mision).filter(models.Mision.usuario_id == usuario_id).all()
+    mision = (
+        db.query(models.Mision)
+        .filter(models.Mision.id == mision_id, models.Mision.usuario_id == usuario_id)
+        .first()
     )
-    return misiones
+
+    if not mision:
+        raise HTTPException(status_code=404, detail="Misión no encontrada")
+
+    if mision.estado == "completada":
+        return {"mensaje": "La misión ya estaba completada", "mision": mision}
+
+    # Actualizamos el estado a completada
+    mision.estado = "completada"
+    db.commit()
+    db.refresh(mision)
+
+    return {"mensaje": "Misión completada con éxito", "mision": mision}
 
 
 # ==========================================
