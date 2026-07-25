@@ -347,3 +347,32 @@ def evaluar_evolucion_usuario(
         "xp_totales": usuario.pasaporte.puntos_experiencia,
         "nivel_actual": usuario.pasaporte.nivel_actual,
     }
+
+
+@app.post("/usuarios/{usuario_id}/reset-base-cero", tags=["Dev Mode"])
+def resetear_usuario_base_cero(usuario_id: int, db: Session = Depends(get_db)):
+    """Endpoint de desarrollo para reiniciar un usuario a Nivel 1 y 0 XP"""
+    usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # Reset Pasaporte
+    if usuario.pasaporte:
+        usuario.pasaporte.puntos_experiencia = 0
+        usuario.pasaporte.nivel_actual = 1
+
+    # Reset Árbol
+    if usuario.arbol:
+        usuario.arbol.estado_crecimiento = "semilla"
+        usuario.arbol.energia_vital = 100
+
+    # Reset Libro
+    if usuario.libro_vivo:
+        usuario.libro_vivo.capitulo_actual = 1
+        usuario.libro_vivo.paginas_completadas = 0
+
+    # Limpiar Misiones antiguas
+    db.query(models.Mision).filter(models.Mision.usuario_id == usuario_id).delete()
+
+    db.commit()
+    return {"mensaje": "Usuario reiniciado a Base Cero con éxito."}

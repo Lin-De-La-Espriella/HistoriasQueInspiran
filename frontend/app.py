@@ -14,24 +14,26 @@ st.set_page_config(page_title="Historias que Inspiran®", page_icon="🌱", layo
 # Comenta o elimina este bloque antes del despliegue final a producción.
 
 # ---------------------------------------------------------
-# 🚀 AUTO-LOGIN ROBUSTO (DEV MODE)
+# 🚀 AUTO-LOGIN ROBUSTO (DEV MODE) - BASE CERO
 # ---------------------------------------------------------
 if "autenticado" not in st.session_state or not st.session_state["autenticado"]:
     st.session_state["autenticado"] = True
-    st.session_state["logged_in"] = True
-    st.session_state["token"] = (
-        "dev_token_bypass"  # Bypass para saltar la pantalla de Login
-    )
+    st.session_state["logged_in"] = True  
+    st.session_state["token"] = "dev_token_bypass" 
     st.session_state["usuario_id"] = 1
     st.session_state["nombre_usuario"] = "Lindley"
-    st.session_state["nivel"] = 3
-    st.session_state["xp_totales"] = 235
+    
+    # Sincronización Base Cero
+    st.session_state["nivel"] = 1
+    st.session_state["xp_totales"] = 0
     st.session_state["fase_arbol"] = "1. Semilla"
     st.session_state["mision_count"] = 1
+    st.session_state["capitulo_actual"] = 1
+    st.session_state["paginas_completadas"] = 0
 
     st.rerun()
 
-st.sidebar.warning("⚙️ Dev Mode: Auto-Login Activo")
+st.sidebar.warning("⚙️ Dev Mode: Auto-Login Activo (Base Cero)")
 # ---------------------------------------------------------
 
 # ==========================================
@@ -237,7 +239,14 @@ else:
             st.rerun()
 
         st.markdown("---")
-        st.markdown("### 🧪 Inspector de Bio-Estructuras (DEV)")
+        st.markdown("### 🧹 Mantenimiento de Datos (DEV)")
+        if st.button("🔥 Reiniciar Usuario a Base Cero (0 XP)"):
+            res_reset = requests.post(f"{API_URL}/usuarios/{usuario_id}/reset-base-cero", headers=headers)
+            if res_reset.status_code == 200:
+                st.toast("🧹 Usuario reiniciado a Nivel 1 (0 XP)", icon="✨")
+                st.rerun()
+            else:
+                st.error("No se pudo procesar el reset.")        )
 
         opciones_fases = [
             ("semilla", "1. Semilla"),
