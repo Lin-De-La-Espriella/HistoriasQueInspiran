@@ -16,12 +16,11 @@ st.set_page_config(page_title="Historias que Inspiran®", page_icon="🌱", layo
 # ---------------------------------------------------------
 # 🚀 AUTO-LOGIN ROBUSTO (DEV MODE)
 # ---------------------------------------------------------
-# Sincroniza todas las posibles llaves de autenticación y fuerza la redirección.
-
 if "autenticado" not in st.session_state or not st.session_state["autenticado"]:
     st.session_state["autenticado"] = True
-    st.session_state["logged_in"] = (
-        True  # Compatibilidad por si el formulario usa 'logged_in'
+    st.session_state["logged_in"] = True
+    st.session_state["token"] = (
+        "dev_token_bypass"  # Bypass para saltar la pantalla de Login
     )
     st.session_state["usuario_id"] = 1
     st.session_state["nombre_usuario"] = "Lindley"
@@ -30,10 +29,8 @@ if "autenticado" not in st.session_state or not st.session_state["autenticado"]:
     st.session_state["fase_arbol"] = "1. Semilla"
     st.session_state["mision_count"] = 1
 
-    # Forzar la recarga para que Streamlit entre directo al Dashboard
     st.rerun()
 
-# Notificación discreta en la barra lateral
 st.sidebar.warning("⚙️ Dev Mode: Auto-Login Activo")
 # ---------------------------------------------------------
 
