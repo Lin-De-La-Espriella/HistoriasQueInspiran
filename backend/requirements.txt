@@ -13,3 +13,4 @@ requests
 python-dotenv
 email-validator
 groq
+fpdf2

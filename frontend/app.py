@@ -2,6 +2,8 @@ import json
 import os
 import requests
 import streamlit as st
+import io
+from fpdf import FPDF
 from streamlit_lottie import st_lottie
 
 # Configuración de la página
@@ -898,6 +900,180 @@ with st.expander("📈 Ver desglose de balance analítico..."):
     )
 
 # =========================================================
+# 📜 CLASE DE DISEÑO PARA CERTIFICADO/REPORTE EJECUTIVO PDF
+# =========================================================
+class ReportePDF(FPDF):
+    def header(self):
+        # Membrete Superior Institucional
+        self.set_fill_color(30, 41, 59)  # Azul Marino Corporativo
+        self.rect(0, 0, 210, 20, "F")
+
+        self.set_font("Helvetica", "B", 12)
+        self.set_text_color(255, 255, 255)
+        self.set_xy(10, 5)
+        self.cell(
+            0, 10, "HISTORIAS QUE INSPIRAN(R) | CERTIFICADO DE EVOLUCION", align="L"
+        )
+
+        self.set_font("Helvetica", "", 8)
+        self.set_xy(10, 11)
+        self.cell(0, 10, "Sistema de Gamificacion & Desarrollo Holistico", align="L")
+        self.ln(15)
+
+    def footer(self):
+        # Pie de Página Oficial
+        self.set_y(-15)
+        self.set_font("Helvetica", "I", 8)
+        self.set_text_color(100, 116, 139)
+        self.cell(
+            0,
+            10,
+            f"Documento de Progreso Oficial | Verificabilidad JWT | Pagina {self.page_no()}",
+            align="C",
+        )
+
+
+def generar_pdf_certificado(
+    nombre_usuario,
+    usuario_id,
+    nivel,
+    xp_totales,
+    fase_arbol,
+    pts_m,
+    pts_e,
+    pts_s,
+    pts_esp,
+):
+    pdf = ReportePDF(orientation="P", unit="mm", format="A4")
+    pdf.add_page()
+
+    # Marco de Certificación Elegante
+    pdf.set_draw_color(203, 213, 225)
+    pdf.set_linewidth(0.8)
+    pdf.rect(8, 25, 194, 257)
+
+    # Título Principal
+    pdf.ln(10)
+    pdf.set_font("Helvetica", "B", 20)
+    pdf.set_text_color(15, 23, 42)
+    pdf.cell(
+        0, 10, "INFORME EJECUTIVO DE PROGRESO", align="C", new_x="LMARGIN", new_y="NEXT"
+    )
+
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_text_color(100, 116, 139)
+    pdf.cell(
+        0,
+        5,
+        "Acreditacion Gamificada de Habilidades y Competencias",
+        align="C",
+        new_x="LMARGIN",
+        new_y="NEXT",
+    )
+    pdf.ln(8)
+
+    # Bloque Datos del Usuario
+    pdf.set_fill_color(241, 245, 249)
+    pdf.rect(15, 52, 180, 28, "F")
+
+    pdf.set_xy(20, 56)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.set_text_color(30, 41, 59)
+
+    # Sanitizamos variables a mayúsculas para el diploma
+    nombre_limpio = str(nombre_usuario).upper()
+    pdf.cell(80, 6, f"ESTUDIANTE: {nombre_limpio}")
+    pdf.cell(
+        80, 6, f"ID USUARIO: #{usuario_id}", align="R", new_x="LMARGIN", new_y="NEXT"
+    )
+
+    pdf.set_x(20)
+    pdf.cell(80, 6, f"NIVEL ALCANZADO: Nivel {nivel} ({xp_totales} XP Totales)")
+    pdf.cell(
+        80, 6, f"BIO-ESTRUCTURA: {fase_arbol}", align="R", new_x="LMARGIN", new_y="NEXT"
+    )
+    pdf.ln(12)
+
+    # Muro de Logros e Insignias
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.set_text_color(30, 41, 59)
+    pdf.cell(0, 8, "Muro de Logros Acreditados", new_x="LMARGIN", new_y="NEXT")
+
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_text_color(51, 65, 85)
+
+    insignias = [" [X] Primer Contacto (Iniciacion en la Plataforma)"]
+    if nivel >= 3:
+        insignias.append(" [X] Brote Explorador (Constancia y Progreso)")
+    if nivel >= 5:
+        insignias.append(" [X] Lider Enraizado (Nivel 5 Alcanzado)")
+
+    for ins in insignias:
+        pdf.cell(0, 6, f"   {ins}", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(8)
+
+    # Matriz de Competencias Holísticas (Tabla Estructurada)
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.set_text_color(30, 41, 59)
+    pdf.cell(0, 8, "Matriz de Competencias Holisticas", new_x="LMARGIN", new_y="NEXT")
+
+    # Encabezados de Tabla
+    pdf.set_fill_color(30, 41, 59)
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(70, 8, " Dimension", border=1, fill=True)
+    pdf.cell(40, 8, " Puntaje", border=1, fill=True, align="C")
+    pdf.cell(
+        70,
+        8,
+        " Enfoque Estrategico",
+        border=1,
+        fill=True,
+        new_x="LMARGIN",
+        new_y="NEXT",
+    )
+
+    # Filas de la Tabla
+    datos_tabla = [
+        ("Dimension Mental", f"{pts_m} pts", "Pensamiento Logico & Arquitectura"),
+        ("Dimension Emocional", f"{pts_e} pts", "Resiliencia & Autocontrol"),
+        ("Dimension Social", f"{pts_s} pts", "Liderazgo & Trabajo en Equipo"),
+        ("Dimension Espiritual", f"{pts_esp} pts", "Proposito de Vida & Valores"),
+    ]
+
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_text_color(30, 41, 59)
+    pdf.set_fill_color(248, 250, 252)
+
+    for i, (dim, pts, enf) in enumerate(datos_tabla):
+        fill = i % 2 == 0
+        pdf.cell(70, 7, f" {dim}", border=1, fill=fill)
+        pdf.cell(40, 7, f"{pts}", border=1, fill=fill, align="C")
+        pdf.cell(70, 7, f" {enf}", border=1, fill=fill, new_x="LMARGIN", new_y="NEXT")
+
+    pdf.ln(15)
+
+    # Sello de Autenticidad Digital
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.set_text_color(100, 116, 139)
+    pdf.cell(
+        0,
+        5,
+        "FIRMA DIGITAL Y EMBLEMA DE AUTENTICIDAD",
+        align="C",
+        new_x="LMARGIN",
+        new_y="NEXT",
+    )
+    pdf.set_font("Helvetica", "", 8)
+    pdf.cell(
+        0, 4, "Historias que Inspiran(R) - Todos los derechos reservados.", align="C"
+    )
+
+    # Retornar como bytes de memoria para Streamlit
+    return bytes(pdf.output())
+
+
+# =========================================================
 # SECCIÓN: INFORME EJECUTIVO Y CERTIFICACIÓN DE PROGRESO
 # =========================================================
 st.markdown("---")
@@ -908,42 +1084,34 @@ col_rep1, col_rep2 = st.columns([2, 1])
 with col_rep1:
     st.write(
         """
-        Genera un informe técnico completo con tu avance en la plataforma. 
-        Este documento consolida tu nivel actual, el estado de tu bio-estructura, 
-        las medallas obtenidas en el Muro de Logros y el desglose holístico de tus competencias.
+        Genera tu **Certificado Oficial de Evolución** en formato PDF con membrete institucional. 
+        Este documento acredita tu nivel, las insignias obtenidas y la matriz de competencias 
+        cuadridimensional alcanzada.
         """
     )
 
 with col_rep2:
-    # Construcción del reporte ejecutivo en formato Markdown estructurado
-    reporte_texto = f"""# 🚀 HISTORIAS QUE INSPIRAN® - REPORTE DE EVOLUCIÓN
----
-**Estudiante:** {st.session_state.get("nombre_usuario", "Lindley")}
-**ID de Usuario:** #{st.session_state.get("usuario_id", 1)}
-**Nivel Alcanzado:** Nivel {st.session_state.get("nivel", 5)} ({xp_base} XP Totales)
-**Fase de Bio-Estructura:** {st.session_state.get("fase_arbol", "Arbol Joven Creativo")}
+    try:
+        # Generar el PDF en memoria utilizando las métricas de la interfaz
+        pdf_bytes = generar_pdf_certificado(
+            nombre_usuario=st.session_state.get("nombre_usuario", "Lindley"),
+            usuario_id=st.session_state.get("usuario_id", 1),
+            nivel=st.session_state.get("nivel", 5),
+            xp_totales=xp_base,  # Variable extraída del Dashboard de Analíticas
+            fase_arbol=st.session_state.get("fase_arbol", "Arbol Joven Creativo"),
+            pts_m=pts_mental,
+            pts_e=pts_emocional,
+            pts_s=pts_social,
+            pts_esp=pts_espiritual,
+        )
 
----
-### 🏅 MURO DE LOGROS E INSIGNIAS
-* 🛸 Primer Contacto (Iniciación en la Plataforma)
-* 🏅 Brote Explorador (Constancia y Progreso)
-* 🌳 Líder Enraizado (Nivel 5 Alcanzado)
-
----
-### 📊 MATRIZ DE COMPETENCIAS HOLÍSTICAS
-* 🧠 **Dimensión Mental:** {pts_mental} pts (Pensamiento Lógico & Arquitectura)
-* ❤️ **Dimensión Emocional:** {pts_emocional} pts (Resiliencia & Autocontrol)
-* 👥 **Dimensión Social:** {pts_social} pts (Liderazgo & Trabajo en Equipo)
-* ✨ **Dimensión Espiritual:** {pts_espiritual} pts (Propósito de Vida & Valores)
-
----
-*Documento generado automáticamente por el Motor Gamificado de Historias que Inspiran®.*
-"""
-
-    st.download_button(
-        label="📥 Descargar Reporte Ejecutivo (.txt)",
-        data=reporte_texto,
-        file_name=f"Reporte_Evolucion_{st.session_state.get('nombre_usuario', 'Lindley')}.txt",
-        mime="text/plain",
-        key="btn_download_report",
-    )
+        # Botón dinámico que despacha el archivo PDF
+        st.download_button(
+            label="📄 Descargar Certificado Oficial (.PDF)",
+            data=pdf_bytes,
+            file_name=f"Certificado_Evolucion_{st.session_state.get('nombre_usuario', 'Lindley')}.pdf",
+            mime="application/pdf",
+            key="btn_download_pdf",
+        )
+    except Exception as e:
+        st.error(f"Error al generar el PDF de certificación: {e}")
