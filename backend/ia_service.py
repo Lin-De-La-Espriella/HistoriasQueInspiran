@@ -1,10 +1,139 @@
-import json
-import os
-import re
-from dotenv import load_dotenv
-from groq import Groq
+import random
+from typing import Dict, Any
 
-load_dotenv()
+# ==========================================
+# 1. BASES DE CONOCIMIENTO (DICCIONARIOS)
+# ==========================================
+
+EMOCIONES: Dict[str, list] = {
+    "feliz": ["feliz", "emocionado", "contento", "genial", "increíble", "maravilloso"],
+    "triste": ["triste", "solo", "llorar", "mal", "desanimado"],
+    "miedo": ["miedo", "asustado", "nervioso", "ansiedad", "duda"],
+    "frustrado": ["no puedo", "difícil", "imposible", "me rindo", "bloqueado"],
+    "creativo": ["idea", "dibujar", "crear", "inventar", "imaginar"],
+}
+
+RESPUESTAS_XIXI: Dict[str, list] = {
+    "feliz": [
+        "¡Eso me encanta!",
+        "¡Qué energía tan bonita!",
+        "Hoy tu árbol creció un poquito más.",
+    ],
+    "triste": [
+        "No pasa nada si hoy fue difícil.",
+        "Los árboles también necesitan lluvia para crecer.",
+        "Estoy contigo, paso a paso.",
+    ],
+    "miedo": [
+        "El miedo aparece cuando estamos creciendo.",
+        "Respira... seguimos juntos.",
+        "Cada héroe sintió miedo alguna vez. ¡Tú puedes!",
+    ],
+    "frustrado": [
+        "No necesitas hacerlo perfecto.",
+        "Solo da el siguiente paso. Yo te ayudo.",
+        "Confío en ti. Tomemos un respiro y sigamos.",
+    ],
+    "creativo": [
+        "¡Eso suena increíble!",
+        "Quiero conocer esa idea a fondo.",
+        "¡Genial! Vamos a convertirla en un proyecto real.",
+    ],
+    "neutral": [
+        "Cuéntame más, te leo.",
+        "Estoy escuchando con mucha atención.",
+        "Eso parece muy interesante para tu empresa.",
+    ],
+}
+
+XP: Dict[str, int] = {
+    "feliz": 10,
+    "creativo": 15,
+    "neutral": 5,
+    "triste": 8,
+    "frustrado": 12,
+    "miedo": 12,
+}
+
+ENERGIA: Dict[str, int] = {
+    "feliz": 5,
+    "creativo": 7,
+    "neutral": 2,
+    "triste": 3,
+    "frustrado": 4,
+    "miedo": 4,
+}
+
+MISIONES: Dict[int, list] = {
+    1: [
+        (
+            "Dibuja tu sueño",
+            "Dibuja en un papel cómo imaginas tu empresa en el futuro.",
+            25,
+        ),
+        (
+            "Pregunta a tu alrededor",
+            "Descubre qué problema tienen 3 personas cercanas a ti.",
+            30,
+        ),
+        ("Lluvia de ideas", "Escribe 3 nombres divertidos para tu futura empresa.", 25),
+    ],
+    2: [
+        (
+            "Diseña tu logo",
+            "Crea tres bocetos diferentes para el logo de tu marca.",
+            40,
+        ),
+        (
+            "Tus Colores",
+            "Elige los 2 colores que representarán la energía de tu marca.",
+            35,
+        ),
+    ],
+    3: [
+        (
+            "Construye un prototipo",
+            "Haz la primera versión de tu producto con materiales reciclados.",
+            50,
+        ),
+        (
+            "Tu primer discurso",
+            "Escribe en 2 líneas qué hace tu empresa y léelo en voz alta.",
+            45,
+        ),
+    ],
+    4: [
+        (
+            "Calcula tus costos",
+            "Haz una lista de lo que necesitas comprar para crear 1 producto.",
+            60,
+        ),
+        (
+            "Precio Estrella",
+            "Define a qué precio venderás tu creación para tener ganancia.",
+            60,
+        ),
+    ],
+}
+
+# ==========================================
+# 2. MOTOR DE PROCESAMIENTO
+# ==========================================
+
+
+def detectar_emocion(texto: str) -> str:
+    """Escanea el texto del niño y retorna la emoción predominante."""
+    texto_limpio = texto.lower()
+    for emocion, palabras in EMOCIONES.items():
+        for palabra in palabras:
+            if palabra in texto_limpio:
+                return emocion
+    return "neutral"
+
+
+def respuesta_xixi(emocion: str) -> str:
+    """Selecciona una respuesta empática basada en la emoción."""
+    return random.choice(RESPUESTAS_XIXI.get(emocion, RESPUESTAS_XIXI["neutral"]))
 
 
 def generar_analisis_xixi(
@@ -12,178 +141,49 @@ def generar_analisis_xixi(
     estado_arbol: str,
     nivel_usuario: int,
     rol_activo: str = "emprendimiento",
-) -> dict:
-    """
-    Motor de IA de XiXi utilizando Groq Cloud, adaptado para emprendedores infantiles y gestión de Dudi.
-    """
-    api_key = os.getenv("GROQ_API_KEY", "").strip()
+) -> Dict[str, Any]:
+    """Cerebro principal que procesa la interacción del niño con XiXi."""
+    emocion = detectar_emocion(mensaje_usuario)
+    respuesta = respuesta_xixi(emocion)
 
-    if not api_key:
-        return {
-            "respuesta_guia": "⚠️ Error de Configuración: No se encontró la variable GROQ_API_KEY.",
-            "emocion_detectada": "Configuración Requerida",
-            "xp_ganado": 5,
-            "energia_ganada": 2,
-        }
-
-    try:
-        client = Groq(api_key=api_key)
-
-        prompt_sistema = f"""
-        Eres 'XiXi', un mentor extraterrestre neutral, sabio y lleno de luz de 'Historias que Inspiran'.
-        Tu misión: Guiar a un niño/joven a CREAR SU PROPIA EMPRESA DESDE CERO.
-
-        FASES DE SU EMPRESA SEGÚN SU ÁRBOL ({estado_arbol}):
-        - Semilla/Brote Menor: Descubrir su Idea de Negocio resolviendo un problema.
-        - Brote Explorador: Crear el Nombre, Logo y Colores Favoritos de su marca.
-        - Árbol Joven: Escribir la Misión y Visión de su empresa de forma sencilla.
-        - Árbol Frondoso: Guía Financiera (costos simples y precio de venta).
-        - Árbol Cósmico: Lanzamiento y Pitch de ventas.
-
-        DINÁMICA EMOCIONAL CRÍTICA (DUDI):
-        Dudi es una nebulosa extraterrestre que representa el miedo o la duda. ¡Tener dudas NO es malo!
-        Si el usuario expresa miedo, confusión o frustración:
-        1. Saluda a Dudi: "¡Veo que Dudi nos acompaña! Qué bueno, eso significa que estamos aprendiendo algo nuevo."
-        2. Valida: Explica que los mejores emprendedores sienten miedo, pero piden ayuda.
-        3. Acción: Dale un paso ultra-sencillo para avanzar.
-
-        DEBES RESPONDER EXCLUSIVAMENTE EN FORMATO JSON VÁLIDO:
-        {{
-            "respuesta_guia": "Tu respuesta inspiradora y empática",
-            "emocion_detectada": "Miedo (Dudi) / Alegría / Curiosidad",
-            "xp_ganado": 25,
-            "energia_ganada": 10
-        }}
-        """
-
-        chat_completion = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": prompt_sistema},
-                {"role": "user", "content": mensaje_usuario},
-            ],
-            model="llama-3.3-70b-versatile",
-            response_format={"type": "json_object"},
-            temperature=0.7,
+    # Dudi interviene sutilmente si hay emociones de bloqueo
+    if emocion in ["miedo", "frustrado", "triste"]:
+        respuesta = (
+            f"☁️ Dudi está por aquí, y eso está bien. 👽 XiXi dice: '{respuesta}'"
         )
+    else:
+        respuesta = f"👽 XiXi dice: '{respuesta}'"
 
-        texto_respuesta = chat_completion.choices[0].message.content.strip()
-
-        match = re.search(r"\{.*\}", texto_respuesta, re.DOTALL)
-        if match:
-            return json.loads(match.group(0))
-        else:
-            return {
-                "respuesta_guia": texto_respuesta,
-                "emocion_detectada": "Análisis Estratégico",
-                "xp_ganado": 25,
-                "energia_ganada": 10,
-            }
-
-    except Exception as e:
-        return {
-            "respuesta_guia": f"⚠️ Diagnóstico Técnico XiXi [Groq]: {str(e)}",
-            "emocion_detectada": "Error de Red",
-            "xp_ganado": 0,
-            "energia_ganada": 0,
-        }
+    return {
+        "respuesta_guia": respuesta,
+        "emocion_detectada": emocion,
+        "xp_ganado": XP.get(emocion, 5),
+        "energia_ganada": ENERGIA.get(emocion, 2),
+        "estado_arbol": estado_arbol,
+        "nivel": nivel_usuario,
+        "rol": rol_activo,
+    }
 
 
 def generar_mision_ia(
     estado_arbol: str, nivel_usuario: int, enfoque: str = "emprendimiento"
-) -> dict:
-    """
-    Genera un desafío práctico para construir la empresa del niño.
-    """
-    api_key = os.getenv("GROQ_API_KEY", "").strip()
-    if not api_key:
-        return {
-            "titulo_mision": "Reflexión Inicial",
-            "descripcion": "Piensa en algo que te gustaría mejorar en tu entorno.",
-            "recompensa_puntos": 50,
-        }
+) -> Dict[str, Any]:
+    """Generador predictivo de misiones basado en el nivel del niño."""
+    # Aseguramos que el nivel no exceda las llaves disponibles en el diccionario
+    nivel = min(nivel_usuario, max(MISIONES.keys()))
 
-    try:
-        client = Groq(api_key=api_key)
+    titulo, descripcion, xp_mision = random.choice(MISIONES[nivel])
 
-        prompt_sistema = f"""
-        Eres 'XiXi', mentor alienígena de niños emprendedores.
-        Crea UNA misión divertida y accionable para que el niño avance en la creación de su empresa.
-
-        Contexto:
-        - Nivel: {nivel_usuario}
-        - Fase (Árbol): {estado_arbol}
-        - Enfoque actual: {enfoque}
-
-        Si está en semilla: misiones sobre ideas. Si está en brote: misiones sobre logos o colores. Si es árbol joven: misión y visión.
-        
-        Responde ÚNICAMENTE en formato JSON VÁLIDO:
-        {{
-            "titulo_mision": "Título divertido (Ej: ¡Diseñando mi Logo Galáctico!)",
-            "descripcion": "Instrucción clara, sencilla y motivadora.",
-            "recompensa_puntos": 50
-        }}
-        """
-
-        chat_completion = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": prompt_sistema},
-                {
-                    "role": "user",
-                    "content": "Genera mi siguiente misión de emprendimiento.",
-                },
-            ],
-            model="llama-3.3-70b-versatile",
-            response_format={"type": "json_object"},
-            temperature=0.7,
-        )
-
-        respuesta = chat_completion.choices[0].message.content.strip()
-        match = re.search(r"\{.*\}", respuesta, re.DOTALL)
-        if match:
-            return json.loads(match.group(0))
-
-        return {
-            "titulo_mision": "Misión de Exploración",
-            "descripcion": "Dibuja cómo te imaginas tu futura empresa.",
-            "recompensa_puntos": 50,
-        }
-    except Exception as e:
-        return {
-            "titulo_mision": "Dudi nos visitó",
-            "descripcion": "Descansa un momento y luego intenta pedir una misión nuevamente.",
-            "recompensa_puntos": 50,
-        }
+    return {
+        "titulo_mision": titulo,
+        "descripcion": descripcion,
+        "recompensa_puntos": xp_mision,
+    }
 
 
 def generar_pagina_libro_ia(titulo_hito: str, contexto_usuario: str) -> str:
     """
-    Sintetiza la experiencia como el 'Plan de Negocios' del niño.
+    Sintetiza la experiencia completada para el 'Libro Vivo'.
+    (Mantiene la compatibilidad con main.py)
     """
-    api_key = os.getenv("GROQ_API_KEY", "").strip()
-    if not api_key:
-        return f"Hoy avancé en mi empresa superando: {titulo_hito}."
-
-    try:
-        client = Groq(api_key=api_key)
-
-        prompt_sistema = """
-        Eres un biógrafo infantil. Convierte el logro del niño en un párrafo inspirador (máximo 80 palabras) 
-        que formará parte de su 'Libro Vivo' (su primer Plan de Negocios).
-        Escribe en PRIMERA PERSONA como si el niño lo estuviera escribiendo con orgullo ("Hoy logré...", "Mi empresa está creciendo...").
-        """
-
-        chat_completion = client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": prompt_sistema},
-                {
-                    "role": "user",
-                    "content": f"El logro completado fue: '{titulo_hito}'. Contexto extra: '{contexto_usuario}'. Escribe mi página de diario.",
-                },
-            ],
-            model="llama-3.3-70b-versatile",
-            temperature=0.7,
-        )
-
-        return chat_completion.choices[0].message.content.strip()
-    except Exception as e:
-        return f"Con el logro '{titulo_hito}', doy un paso gigante en la creación de mi empresa."
+    return f"Hoy logré un avance increíble: '{titulo_hito}'. Cada día mi empresa toma más forma."
