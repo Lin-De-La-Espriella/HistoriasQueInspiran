@@ -346,7 +346,7 @@ elif st.session_state["menu_activo"] == "🌳 Árbol de Vida":
         st.write("🛸 Primer Contacto | 🏅 Brote Explorador | 🌳 Líder Enraizado")
 
 # ==========================================
-# 3. TALLER DE MARCA (NUEVO: MUNDO BROTE)
+# 3. TALLER DE MARCA (MUNDO BROTE)
 # ==========================================
 elif st.session_state["menu_activo"] == "🎨 Taller de Marca":
     st.markdown("### 🎨 Taller de Identidad de Marca — Mundo Brote")
@@ -371,9 +371,33 @@ elif st.session_state["menu_activo"] == "🎨 Taller de Marca":
         )
 
         if st.button("💾 Guardar y Firmar mi Kit de Marca"):
+            # 1. Actualizamos sesión local
             st.session_state["nombre_empresa"] = empresa_in
             st.session_state["eslogan_empresa"] = eslogan_in
             st.session_state["color_marca"] = color_in
+
+            # 2. Persistencia en Supabase vía API
+            payload_adn = {
+                "nombre_empresa": empresa_in,
+                "eslogan": eslogan_in,
+                "color_marca": color_in,
+            }
+            try:
+                res_adn = requests.put(
+                    f"{API_URL}/usuarios/{usuario_id}/libro/adn",
+                    json=payload_adn,
+                    headers=headers,
+                )
+                if res_adn.status_code == 200:
+                    st.cache_data.clear()  # Invalida caché para refrescar
+                    st.balloons()
+                    st.toast(
+                        "🎉 ¡Kit de Marca guardado para siempre en Supabase!", icon="✨"
+                    )
+                else:
+                    st.error("No se pudo guardar la marca en el servidor.")
+            except Exception as e:
+                st.error(f"Error de red: {e}")
 
             st.balloons()
             st.toast("🎉 ¡Identidad de marca guardada en tu Libro Vivo!", icon="✨")

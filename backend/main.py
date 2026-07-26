@@ -443,3 +443,44 @@ def resetear_usuario_base_cero(usuario_id: int, db: Session = Depends(get_db)):
 
     db.commit()
     return {"mensaje": "Usuario reiniciado a Base Cero con éxito."}
+
+
+# ==========================================
+# SECCIÓN: ACTUALIZACIÓN DE ADN DE MARCA
+# ==========================================
+
+
+class ADNMarcaSchema(BaseModel):
+    nombre_empresa: str
+    eslogan: str
+    color_marca: str
+
+
+@app.put("/usuarios/{usuario_id}/libro/adn", tags=["Libro Vivo"])
+def actualizar_adn_marca(
+    usuario_id: int, adn_data: ADNMarcaSchema, db: Session = Depends(get_db)
+):
+    """Guarda el Kit de Marca en el Libro Vivo del usuario"""
+    usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    if not usuario.libro_vivo:
+        db_libro = models.LibroVivo(usuario_id=usuario_id)
+        db.add(db_libro)
+        db.commit()
+        db.refresh(db_libro)
+        usuario.libro_vivo = db_libro
+
+    # Actualizamos el diccionario resumen_adn en Supabase
+    usuario.libro_vivo.resumen_adn = {
+        "nombre_empresa": adn_data.nombre_empresa,
+        "eslogan": adn_data.eslogan,
+        "color_marca": adn_data.color_marca,
+    }
+
+    db.commit()
+    return {
+        "mensaje": "¡ADN de Marca guardado con éxito!",
+        "adn": usuario.libro_vivo.resumen_adn,
+    }
