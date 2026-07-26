@@ -993,26 +993,35 @@ def generar_pdf_certificado(
     )
     pdf.ln(8)
 
-    # Bloque Datos del Usuario
+    # Bloque Datos del Usuario (Ajustado para evitar solapamiento)
     pdf.set_fill_color(241, 245, 249)
-    pdf.rect(15, 52, 180, 28, "F")
+    pdf.rect(15, 52, 180, 32, "F")  # Ampliamos alto a 32mm
 
-    pdf.set_xy(20, 56)
-    pdf.set_font("Helvetica", "B", 11)
+    # Fila 1: Estudiante e ID
+    pdf.set_xy(20, 55)
+    pdf.set_font("Helvetica", "B", 10)
     pdf.set_text_color(30, 41, 59)
 
     nombre_limpio = str(nombre_usuario).upper()
-    pdf.cell(80, 6, f"ESTUDIANTE: {nombre_limpio}")
+    pdf.cell(110, 6, f"ESTUDIANTE: {nombre_limpio}")
     pdf.cell(
-        80, 6, f"ID USUARIO: #{usuario_id}", align="R", new_x="LMARGIN", new_y="NEXT"
+        50, 6, f"ID USUARIO: #{usuario_id}", align="R", new_x="LMARGIN", new_y="NEXT"
     )
 
+    # Fila 2: Nivel y XP
     pdf.set_x(20)
-    pdf.cell(80, 6, f"NIVEL ALCANZADO: Nivel {nivel} ({xp_totales} XP Totales)")
     pdf.cell(
-        80, 6, f"BIO-ESTRUCTURA: {fase_arbol}", align="R", new_x="LMARGIN", new_y="NEXT"
+        160,
+        6,
+        f"NIVEL ALCANZADO: Nivel {nivel} ({xp_totales} XP Totales)",
+        new_x="LMARGIN",
+        new_y="NEXT",
     )
-    pdf.ln(12)
+
+    # Fila 3: Bio-Estructura
+    pdf.set_x(20)
+    pdf.cell(160, 6, f"BIO-ESTRUCTURA: {fase_arbol}", new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(10)
 
     # Muro de Logros e Insignias
     pdf.set_font("Helvetica", "B", 13)
