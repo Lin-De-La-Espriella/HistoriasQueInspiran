@@ -1,13 +1,14 @@
-from pydantic import BaseModel, EmailStr
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
+
+from pydantic import BaseModel, EmailStr, Field
 
 
 class PasaporteBase(BaseModel):
     avatar_url: Optional[str] = None
     nivel_actual: int = 1
     puntos_experiencia: int = 0
-    insignias: List[str] = []
+    insignias: List[str] = Field(default_factory=list)
 
 
 class PasaporteRespuesta(PasaporteBase):
@@ -33,6 +34,7 @@ class ArbolRespuesta(ArbolBase):
 
 class MisionCrear(BaseModel):
     titulo_mision: str
+    descripcion: str
     recompensa_puntos: int = 10
 
 
@@ -46,15 +48,15 @@ class MisionRespuesta(MisionCrear):
 
 
 class LibroVivoBase(BaseModel):
-    titulo_libro: str
+    titulo_libro: str = "Mi Historia Inspiradora"
     paginas_completadas: int = 0
     capitulo_actual: int = 1
+    resumen_adn: dict = Field(default_factory=dict)
 
 
 class LibroVivoRespuesta(LibroVivoBase):
     id: int
     usuario_id: int
-    resumen_adn: dict
 
     class Config:
         from_attributes = True
@@ -64,9 +66,7 @@ class InteraccionCrear(BaseModel):
     personaje: str
     mensaje_usuario: str
     respuesta_guia: Optional[str] = ""
-    rol_activo: Optional[str] = (
-        "emprendimiento"  # 👈 Nuevo campo para mapear si el niño diseña, planea o costea
-    )
+    rol_activo: Optional[str] = "emprendimiento"
 
 
 class InteraccionRespuesta(InteraccionCrear):
@@ -81,7 +81,7 @@ class InteraccionRespuesta(InteraccionCrear):
 class UsuarioCrear(BaseModel):
     nombre: str
     email: EmailStr
-    password: str  # <-- NUEVO CAMPO AÑADIDO PARA RECIBIR LA CONTRASEÑA
+    password: str
     rol: Optional[str] = "estudiante"
 
 
@@ -100,15 +100,18 @@ class UsuarioRespuesta(BaseModel):
         from_attributes = True
 
 
-# --- ESQUEMAS DE AUTENTICACIÓN ---
-
-
 class Token(BaseModel):
     access_token: str
     token_type: str
-    usuario_id: Optional[int] = None
-    nombre: Optional[str] = None
+
+
+class LoginRespuesta(Token):
+    usuario_id: int
+    nombre: str
+    rol: str
 
 
 class TokenData(BaseModel):
     email: Optional[str] = None
+    usuario_id: Optional[int] = None
+    rol: Optional[str] = None

@@ -1,15 +1,16 @@
 from sqlalchemy import (
-    Column,
-    Integer,
-    String,
     Boolean,
+    Column,
     DateTime,
     ForeignKey,
+    Integer,
     JSON,
+    String,
     Text,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+
 from backend.database import Base
 
 
@@ -24,14 +25,11 @@ class Usuario(Base):
     activo = Column(Boolean, default=True)
     fecha_creacion = Column(DateTime(timezone=True), server_default=func.now())
 
-    # Relaciones - Arquitectura Gamificada e IA
-    pasaporte = relationship("Pasaporte", back_populates="dueño", uselist=False)
-    arbol = relationship("ArbolProgreso", back_populates="dueño", uselist=False)
-    libro_vivo = relationship("LibroVivo", back_populates="dueño", uselist=False)
-    interacciones = relationship("InteraccionGuia", back_populates="dueño")
-
-    # Apuntando correctamente al modelo Mision
-    misiones = relationship("Mision", back_populates="dueño")
+    pasaporte = relationship("Pasaporte", back_populates="dueno", uselist=False)
+    arbol = relationship("ArbolProgreso", back_populates="dueno", uselist=False)
+    libro_vivo = relationship("LibroVivo", back_populates="dueno", uselist=False)
+    interacciones = relationship("InteraccionGuia", back_populates="dueno")
+    misiones = relationship("Mision", back_populates="dueno")
 
 
 class LibroVivo(Base):
@@ -44,7 +42,7 @@ class LibroVivo(Base):
     capitulo_actual = Column(Integer, default=1)
     resumen_adn = Column(JSON, default=dict)
 
-    dueño = relationship("Usuario", back_populates="libro_vivo")
+    dueno = relationship("Usuario", back_populates="libro_vivo")
 
 
 class InteraccionGuia(Base):
@@ -53,14 +51,11 @@ class InteraccionGuia(Base):
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"))
     personaje = Column(String(50), default="xixi", nullable=False)
-
-    # Se utiliza Text para permitir almacenamiento ilimitado de caracteres
     mensaje_usuario = Column(Text, nullable=False)
     respuesta_guia = Column(Text, nullable=False)
-
     fecha_interaccion = Column(DateTime(timezone=True), server_default=func.now())
 
-    dueño = relationship("Usuario", back_populates="interacciones")
+    dueno = relationship("Usuario", back_populates="interacciones")
 
 
 class Pasaporte(Base):
@@ -73,7 +68,7 @@ class Pasaporte(Base):
     puntos_experiencia = Column(Integer, default=0)
     insignias = Column(JSON, default=list)
 
-    dueño = relationship("Usuario", back_populates="pasaporte")
+    dueno = relationship("Usuario", back_populates="pasaporte")
 
 
 class ArbolProgreso(Base):
@@ -84,7 +79,7 @@ class ArbolProgreso(Base):
     estado_crecimiento = Column(String(50), default="semilla")
     energia_vital = Column(Integer, default=100)
 
-    dueño = relationship("Usuario", back_populates="arbol")
+    dueno = relationship("Usuario", back_populates="arbol")
 
 
 class Mision(Base):
@@ -97,4 +92,4 @@ class Mision(Base):
     estado = Column(String(20), default="pendiente")
     recompensa_puntos = Column(Integer, default=50)
 
-    dueño = relationship("Usuario", back_populates="misiones")
+    dueno = relationship("Usuario", back_populates="misiones")

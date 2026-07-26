@@ -1,7 +1,8 @@
-from backend import models, schemas, security
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+
+from backend import models, schemas, security
 
 
 def obtener_usuario_por_email(db: Session, email: str):
@@ -19,7 +20,10 @@ def obtener_usuarios(db: Session, skip: int = 0, limit: int = 100):
 
 
 def crear_usuario(db: Session, usuario: schemas.UsuarioCrear):
-    """Crea un usuario nuevo junto con su ecosistema inicial (Pasaporte, Árbol, Libro)."""
+    """
+    Crea un usuario nuevo junto con su ecosistema inicial:
+    Pasaporte, Árbol y Libro Vivo.
+    """
     email_limpio = usuario.email.strip().lower()
 
     usuario_existente = obtener_usuario_por_email(db, email=email_limpio)
@@ -44,25 +48,27 @@ def crear_usuario(db: Session, usuario: schemas.UsuarioCrear):
         db.refresh(db_usuario)
 
         db_pasaporte = models.Pasaporte(
-            usuario_id=db_usuario.id, nivel_actual=1, puntos_experiencia=0
+            usuario_id=db_usuario.id,
+            nivel_actual=1,
+            puntos_experiencia=0,
+            insignias=[],
         )
-        db.add(db_pasaporte)
-
         db_arbol = models.ArbolProgreso(
             usuario_id=db_usuario.id,
             estado_crecimiento="semilla",
             energia_vital=100,
         )
-        db.add(db_arbol)
-
         db_libro = models.LibroVivo(
-            usuario_id=db_usuario.id, capitulo_actual=1, paginas_completadas=0
+            usuario_id=db_usuario.id,
+            titulo_libro="Mi Historia Inspiradora",
+            capitulo_actual=1,
+            paginas_completadas=0,
+            resumen_adn={},
         )
-        db.add(db_libro)
 
+        db.add_all([db_pasaporte, db_arbol, db_libro])
         db.commit()
         db.refresh(db_usuario)
-
         return db_usuario
 
     except IntegrityError as e:
@@ -84,16 +90,23 @@ def autenticar_usuario(db: Session, email: str, password_plana: str):
     usuario = obtener_usuario_por_email(db, email=email)
     if not usuario:
         return None
-    # CORREGIDO: Llamada sincronizada a verificar_password (en español)
+
     if not security.verificar_password(password_plana, usuario.hashed_password):
         return None
+
     return usuario
 
 
-def crear_mision_usuario(db: Session, mision: schemas.MisionCrear, usuario_id: int):
-    db_mision = models.MisionUsuario(
+def crear_mision_usuario(
+    db: Session,
+    usuario_id: int,
+    mision: schemas.MisionCrear,
+):
+    """Crea una misión para un usuario con descripción y recompensa."""
+    db_mision = models.Mision(
         usuario_id=usuario_id,
         titulo_mision=mision.titulo_mision,
+        descripcion=mision.descripcion,
         recompensa_puntos=mision.recompensa_puntos,
         estado="pendiente",
     )
@@ -104,20 +117,20 @@ def crear_mision_usuario(db: Session, mision: schemas.MisionCrear, usuario_id: i
 
 
 def obtener_misiones_usuario(db: Session, usuario_id: int):
-    return (
-        db.query(models.MisionUsuario)
-        .filter(models.MisionUsuario.usuario_id == usuario_id)
-        .all()
-    )
+    """Lista todas las misiones de un usuario."""
+    return db.query(models.Mision).filter(models.Mision.usuario_id == usuario_id).all()
 
 
 def completar_mision(db: Session, usuario_id: int, mision_id: int):
+    """
+    Marca una misión como completada y suma experiencia al pasaporte.
+    """
     mision = (
-        db.query(models.MisionUsuario)
+        db.query(models.Mision)
         .filter(
-            models.MisionUsuario.id == mision_id,
-            models.MisionUsuario.usuario_id == usuario_id,
-            models.MisionUsuario.estado == "pendiente",
+            models.Mision.id == mision_id,
+            models.Mision.usuario_id == usuario_id,
+            models.Mision.estado == "pendiente",
         )
         .first()
     )
@@ -132,6 +145,7 @@ def completar_mision(db: Session, usuario_id: int, mision_id: int):
         .filter(models.Pasaporte.usuario_id == usuario_id)
         .first()
     )
+
     if pasaporte:
         pasaporte.puntos_experiencia += mision.recompensa_puntos
 
@@ -141,6 +155,7 @@ def completar_mision(db: Session, usuario_id: int, mision_id: int):
 
 
 def obtener_libro_vivo(db: Session, usuario_id: int):
+    """Retorna el Libro Vivo del usuario."""
     return (
         db.query(models.LibroVivo)
         .filter(models.LibroVivo.usuario_id == usuario_id)
@@ -149,13 +164,16 @@ def obtener_libro_vivo(db: Session, usuario_id: int):
 
 
 def registrar_interaccion(
-    db: Session, usuario_id: int, interaccion: schemas.InteraccionCrear
+    db: Session,
+    usuario_id: int,
+    interaccion: schemas.InteraccionCrear,
 ):
+    """Registra una interacción con XiXi o Dudi."""
     db_interaccion = models.InteraccionGuia(
         usuario_id=usuario_id,
         personaje=interaccion.personaje,
         mensaje_usuario=interaccion.mensaje_usuario,
-        respuesta_guia=interaccion.respuesta_guia,
+        respuesta_guia=interaccion.respuesta_guia or "",
     )
     db.add(db_interaccion)
     db.commit()
