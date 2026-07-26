@@ -36,53 +36,93 @@ if "messages" not in st.session_state:
     st.session_state["messages"] = []
 
 # ---------------------------------------------------------
-# 🔒 SISTEMA DE AUTENTICACIÓN JWT SEGURO (PRODUCCIÓN)
+# 🔒 SISTEMA DE AUTENTICACIÓN JWT SEGURO (PRODUCCIÓN & MULTI-PERFIL)
 # ---------------------------------------------------------
-if not st.session_state["autenticado"]:
+if not st.session_state.get("autenticado", False):
     st.sidebar.markdown("### 🔐 Acceso a la Plataforma")
 
-    # Formulario con valores por defecto para agilizar el flujo
-    email_input = st.sidebar.text_input("Correo Electrónico", value=DEV_EMAIL)
-    password_input = st.sidebar.text_input(
-        "Contraseña", type="password", value=DEV_PASS
-    )
+    # 1. Enrutamiento Visual: Pestañas de Login y Registro
+    tab_login, tab_registro = st.sidebar.tabs(["🔑 Iniciar Sesión", "📝 Crear Cuenta"])
 
-    if st.sidebar.button("🔑 Iniciar Sesión"):
-        if not email_input or not password_input:
-            st.sidebar.warning("Por favor ingresa credenciales válidas.")
-        else:
-            try:
-                # Petición HTTP al endpoint de seguridad
-                response = requests.post(
-                    f"{API_URL}/auth/login",
-                    json={"email": email_input, "password": password_input},
-                )
+    # --- PESTAÑA 1: INICIO DE SESIÓN ---
+    with tab_login:
+        # Formulario con valores por defecto para agilizar el flujo de pruebas
+        email_input = st.text_input(
+            "Correo Electrónico", value=DEV_EMAIL, key="login_email"
+        )
+        password_input = st.text_input(
+            "Contraseña", type="password", value=DEV_PASS, key="login_pass"
+        )
 
-                if response.status_code == 200:
-                    data_token = response.json()
-
-                    # 2. Asignación de credenciales seguras
-                    st.session_state["token"] = data_token["access_token"]
-                    st.session_state["autenticado"] = True
-                    st.session_state["usuario_id"] = 1
-                    st.session_state["nombre_usuario"] = "Lindley"
-
-                    # 3. Inicialización Base Cero en UI (Mejora Continua: A futuro esto vendrá de la DB)
-                    st.session_state["nivel"] = 1
-                    st.session_state["xp_totales"] = 0
-                    st.session_state["fase_arbol"] = "1. Semilla"
-                    st.session_state["mision_count"] = 1
-                    st.session_state["capitulo_actual"] = 1
-                    st.session_state["paginas_completadas"] = 0
-
-                    st.sidebar.success("¡Sesión iniciada con éxito!")
-                    st.rerun()
-                else:
-                    st.sidebar.error(
-                        "Credenciales incorrectas. Verifica tu acceso en la base de datos."
+        if st.button("🔑 Ingresar", key="btn_login"):
+            if not email_input or not password_input:
+                st.warning("Por favor ingresa credenciales válidas.")
+            else:
+                try:
+                    # Petición HTTP al endpoint de seguridad
+                    response = requests.post(
+                        f"{API_URL}/auth/login",
+                        json={"email": email_input, "password": password_input},
                     )
-            except Exception as e:
-                st.sidebar.error(f"Error crítico de conexión: {e}")
+
+                    if response.status_code == 200:
+                        data_token = response.json()
+
+                        # 2. Asignación de credenciales seguras (Dinámico)
+                        st.session_state["token"] = data_token.get("access_token")
+                        st.session_state["autenticado"] = True
+
+                        # Mapeo dinámico desde la DB con fallback a entorno local
+                        st.session_state["usuario_id"] = data_token.get("usuario_id", 1)
+                        st.session_state["nombre_usuario"] = data_token.get(
+                            "nombre", "Lindley"
+                        )
+
+                        # 3. Inicialización Base Cero en UI (Mejora Continua: A futuro esto vendrá de la DB)
+                        st.session_state["nivel"] = 1
+                        st.session_state["xp_totales"] = 0
+                        st.session_state["fase_arbol"] = "1. Semilla"
+                        st.session_state["mision_count"] = 1
+                        st.session_state["capitulo_actual"] = 1
+                        st.session_state["paginas_completadas"] = 0
+
+                        st.success("¡Sesión iniciada con éxito!")
+                        st.rerun()
+                    else:
+                        st.error(
+                            "Credenciales incorrectas. Verifica tu acceso en la base de datos."
+                        )
+                except Exception as e:
+                    st.error(f"Error crítico de conexión: {e}")
+
+    # --- PESTAÑA 2: REGISTRO DE NUEVO ESTUDIANTE ---
+    with tab_registro:
+        nuevo_nombre = st.text_input("Nombre Completo", key="reg_nombre")
+        nuevo_email = st.text_input("Correo Electrónico", key="reg_email")
+        nueva_pass = st.text_input("Contraseña", type="password", key="reg_pass")
+
+        if st.button("📝 Registrarme Base Cero", key="btn_registro"):
+            if not nuevo_nombre or not nuevo_email or not nueva_pass:
+                st.warning("Completa todos los campos para registrarte.")
+            else:
+                payload = {
+                    "nombre": nuevo_nombre,
+                    "email": nuevo_email,
+                    "password": nueva_pass,
+                    "rol": "estudiante",
+                }
+                try:
+                    res_reg = requests.post(f"{API_URL}/usuarios/", json=payload)
+                    if res_reg.status_code == 201:
+                        st.success(
+                            "¡Cuenta creada exitosamente! Ahora ve a la pestaña Iniciar Sesión."
+                        )
+                    else:
+                        st.error(
+                            "Error en el registro. El correo podría ya estar en uso."
+                        )
+                except Exception as e:
+                    st.error(f"Error al conectar con el servidor: {e}")
 
     # 4. Bloqueo de renderizado: Evita que cargue la app si no hay sesión
     st.warning(
