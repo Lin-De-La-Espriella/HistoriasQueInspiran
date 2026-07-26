@@ -1111,15 +1111,33 @@ with col_rep1:
 
 with col_rep2:
     try:
-        # Calculamos el nivel dinámico antes de llamar la función PDF
+        # 1. Cálculo dinámico de Nivel
         nivel_real = (xp_base // 100) + 1
 
+        # 2. Mapeo Lógico de Bio-Estructura (Sincronización forzada)
+        fases_biologicas = {
+            1: "1. Semilla",
+            2: "2. Brote Menor",
+            3: "3. Brote Explorador",
+            4: "4. Arbol Joven Enraizado",
+            5: "5. Arbol Joven Creativo",
+            6: "6. Arbol Joven Empatico",
+            7: "7. Arbol Frondoso Lider",
+            8: "8. Arbol Frondoso Visionario",
+            9: "9. Arbol Sabio",
+            10: "10. Arbol Cosmico",
+        }
+
+        # Obtenemos la fase correspondiente a tu nivel exacto
+        fase_dinamica = fases_biologicas.get(nivel_real, "Arbol Cosmico")
+
+        # 3. Generación vectorial
         pdf_bytes = generar_pdf_certificado(
             nombre_usuario=st.session_state.get("nombre_usuario", "Lindley"),
             usuario_id=st.session_state.get("usuario_id", 1),
-            nivel=nivel_real,  # 👈 Sincronización exacta con los 305 XP
+            nivel=nivel_real,
             xp_totales=xp_base,
-            fase_arbol=st.session_state.get("fase_arbol", "1. Semilla"),
+            fase_arbol=fase_dinamica,  # 👈 Inyectamos la fase calculada en tiempo real
             pts_m=pts_mental,
             pts_e=pts_emocional,
             pts_s=pts_social,
