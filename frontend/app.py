@@ -256,39 +256,14 @@ with st.sidebar:
         )
         if res_reset.status_code == 200:
             st.cache_data.clear()  # Invalida caché para reflejar Nivel 1
-            st.toast("🧹 Usuario reiniciado a Nivel 1 (0 XP)", icon="✨")
+            st.session_state.messages = []  # 🚀 NUEVO: Borra la memoria del chat actual
+            st.toast(
+                "🧹 Usuario reiniciado a Nivel 1 (0 XP) y Memoria de XiXi borrada",
+                icon="✨",
+            )
             st.rerun()
         else:
             st.error("No se pudo procesar el reset.")
-
-    opciones_fases = [
-        ("semilla", "1. Semilla"),
-        ("brote_menor", "2. Brote Menor"),
-        ("brote_explorador", "3. Brote Explorador"),
-        ("arbol_joven_enraizado", "4. Árbol Joven Enraizado"),
-        ("arbol_joven_creativo", "5. Árbol Joven Creativo"),
-        ("arbol_joven_empatico", "6. Árbol Joven Empático"),
-        ("arbol_frondoso_lider", "7. Árbol Frondoso Líder"),
-        ("arbol_frondoso_visionario", "8. Árbol Frondoso Visionario"),
-        ("arbol_frondoso_sabio", "9. Árbol Frondoso Sabio"),
-        ("arbol_cosmico", "10. Árbol Cósmico"),
-    ]
-
-    fase_seleccionada = st.selectbox(
-        "Simular Vista de Fase:",
-        options=[op[0] for op in opciones_fases],
-        format_func=lambda x: dict(opciones_fases).get(x, x),
-        key="select_fase_dev",
-    )
-
-    if st.button("👁️ Simular Fase en Pantalla"):
-        st.session_state["estado_arbol_override"] = fase_seleccionada
-        st.rerun()
-
-    if "estado_arbol_override" in st.session_state:
-        if st.button("🔄 Restablecer a Datos Reales"):
-            del st.session_state["estado_arbol_override"]
-            st.rerun()
 
 # --- OBTENCIÓN DE DATOS REALES ---
 res_users = requests.get(f"{API_URL}/usuarios/", headers=headers)
@@ -303,9 +278,6 @@ nivel_actual = pasaporte.get("nivel_actual", 1)
 xp_actual = pasaporte.get("puntos_experiencia", 0)
 estado_arbol = arbol.get("estado_crecimiento", "semilla")
 energia_vital = arbol.get("energia_vital", 100)
-
-if "estado_arbol_override" in st.session_state:
-    estado_arbol = st.session_state["estado_arbol_override"]
 
 st.markdown("---")
 
