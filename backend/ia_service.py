@@ -8,16 +8,19 @@ load_dotenv()
 
 
 def generar_analisis_xixi(
-    mensaje_usuario: str, estado_arbol: str, nivel_usuario: int
+    mensaje_usuario: str,
+    estado_arbol: str,
+    nivel_usuario: int,
+    rol_activo: str = "emprendimiento",
 ) -> dict:
     """
-    Motor de IA de XiXi utilizando la infraestructura ultra rápida de Groq Cloud.
+    Motor de IA de XiXi utilizando Groq Cloud, adaptado para emprendedores infantiles y gestión de Dudi.
     """
     api_key = os.getenv("GROQ_API_KEY", "").strip()
 
     if not api_key:
         return {
-            "respuesta_guia": "⚠️ Error de Configuración: No se encontró la variable GROQ_API_KEY en el entorno.",
+            "respuesta_guia": "⚠️ Error de Configuración: No se encontró la variable GROQ_API_KEY.",
             "emocion_detectada": "Configuración Requerida",
             "xp_ganado": 5,
             "energia_ganada": 2,
@@ -27,24 +30,32 @@ def generar_analisis_xixi(
         client = Groq(api_key=api_key)
 
         prompt_sistema = f"""
-        Eres 'XiXi', mentor alienígena y estratega de negocios de 'Historias que Inspiran'.
-        
-        INSTRUCCIONES CLAVE:
-        1. Proporciona respuestas profesionales, analíticas e inspiradoras enfocadas en ingeniería y emprendimiento.
-        2. DEBES RESPONDER EXCLUSIVAMENTE EN FORMATO JSON VÁLIDO con la siguiente estructura:
-           {{
-             "respuesta_guia": "Tu respuesta estratégica como XiXi",
-             "emocion_detectada": "Estrategia Operativa",
-             "xp_ganado": 25,
-             "energia_ganada": 10
-           }}
+        Eres 'XiXi', un mentor extraterrestre neutral, sabio y lleno de luz de 'Historias que Inspiran'.
+        Tu misión: Guiar a un niño/joven a CREAR SU PROPIA EMPRESA DESDE CERO.
 
-        CONTEXTO ACTUAL:
-        - Nivel Usuario: {nivel_usuario}
-        - Fase del Árbol: {estado_arbol}
+        FASES DE SU EMPRESA SEGÚN SU ÁRBOL ({estado_arbol}):
+        - Semilla/Brote Menor: Descubrir su Idea de Negocio resolviendo un problema.
+        - Brote Explorador: Crear el Nombre, Logo y Colores Favoritos de su marca.
+        - Árbol Joven: Escribir la Misión y Visión de su empresa de forma sencilla.
+        - Árbol Frondoso: Guía Financiera (costos simples y precio de venta).
+        - Árbol Cósmico: Lanzamiento y Pitch de ventas.
+
+        DINÁMICA EMOCIONAL CRÍTICA (DUDI):
+        Dudi es una nebulosa extraterrestre que representa el miedo o la duda. ¡Tener dudas NO es malo!
+        Si el usuario expresa miedo, confusión o frustración:
+        1. Saluda a Dudi: "¡Veo que Dudi nos acompaña! Qué bueno, eso significa que estamos aprendiendo algo nuevo."
+        2. Valida: Explica que los mejores emprendedores sienten miedo, pero piden ayuda.
+        3. Acción: Dale un paso ultra-sencillo para avanzar.
+
+        DEBES RESPONDER EXCLUSIVAMENTE EN FORMATO JSON VÁLIDO:
+        {{
+            "respuesta_guia": "Tu respuesta inspiradora y empática",
+            "emocion_detectada": "Miedo (Dudi) / Alegría / Curiosidad",
+            "xp_ganado": 25,
+            "energia_ganada": 10
+        }}
         """
 
-        # Invocación al modelo potente de Groq con forzado de JSON
         chat_completion = client.chat.completions.create(
             messages=[
                 {"role": "system", "content": prompt_sistema},
@@ -57,7 +68,6 @@ def generar_analisis_xixi(
 
         texto_respuesta = chat_completion.choices[0].message.content.strip()
 
-        # Parseo seguro del contenido JSON
         match = re.search(r"\{.*\}", texto_respuesta, re.DOTALL)
         if match:
             return json.loads(match.group(0))
@@ -70,27 +80,25 @@ def generar_analisis_xixi(
             }
 
     except Exception as e:
-        error_detallado = str(e)
-        print(f"❌ Error en Groq Cloud API: {error_detallado}")
-
         return {
-            "respuesta_guia": f"⚠️ Diagnóstico Técnico XiXi [Groq]: {error_detallado}",
+            "respuesta_guia": f"⚠️ Diagnóstico Técnico XiXi [Groq]: {str(e)}",
             "emocion_detectada": "Error de Red",
             "xp_ganado": 0,
             "energia_ganada": 0,
         }
 
 
-def generar_mision_ia(estado_arbol: str, nivel_usuario: int) -> dict:
+def generar_mision_ia(
+    estado_arbol: str, nivel_usuario: int, enfoque: str = "emprendimiento"
+) -> dict:
     """
-    Genera un desafío personalizado utilizando Groq Cloud en función
-    del nivel y la fase de la bio-estructura del usuario.
+    Genera un desafío práctico para construir la empresa del niño.
     """
     api_key = os.getenv("GROQ_API_KEY", "").strip()
     if not api_key:
         return {
-            "titulo_mision": "Reflexión Operativa",
-            "descripcion": "Establece tu meta principal para este sprint de desarrollo.",
+            "titulo_mision": "Reflexión Inicial",
+            "descripcion": "Piensa en algo que te gustaría mejorar en tu entorno.",
             "recompensa_puntos": 50,
         }
 
@@ -98,18 +106,20 @@ def generar_mision_ia(estado_arbol: str, nivel_usuario: int) -> dict:
         client = Groq(api_key=api_key)
 
         prompt_sistema = f"""
-        Eres 'XiXi', mentor alienígena y estratega de 'Historias que Inspiran'.
-        Diseña una misión práctica, reflexiva y estratégica para el usuario.
+        Eres 'XiXi', mentor alienígena de niños emprendedores.
+        Crea UNA misión divertida y accionable para que el niño avance en la creación de su empresa.
 
-        CONTEXTO DEL USUARIO:
-        - Nivel Actual: {nivel_usuario}
-        - Fase de Bio-Estructura (Árbol): {estado_arbol}
+        Contexto:
+        - Nivel: {nivel_usuario}
+        - Fase (Árbol): {estado_arbol}
+        - Enfoque actual: {enfoque}
 
-        REGLAS STRICTAS DE RESPUESTA:
-        Responde ÚNICAMENTE en formato JSON VÁLIDO con esta estructura:
+        Si está en semilla: misiones sobre ideas. Si está en brote: misiones sobre logos o colores. Si es árbol joven: misión y visión.
+        
+        Responde ÚNICAMENTE en formato JSON VÁLIDO:
         {{
-            "titulo_mision": "Título corto y potente (Ej: Optimización de Procesos)",
-            "descripcion": "Acción concreta orientada a ingeniería, liderazgo o emprendimiento.",
+            "titulo_mision": "Título divertido (Ej: ¡Diseñando mi Logo Galáctico!)",
+            "descripcion": "Instrucción clara, sencilla y motivadora.",
             "recompensa_puntos": 50
         }}
         """
@@ -119,7 +129,7 @@ def generar_mision_ia(estado_arbol: str, nivel_usuario: int) -> dict:
                 {"role": "system", "content": prompt_sistema},
                 {
                     "role": "user",
-                    "content": "Genera mi siguiente misión de evolución personalizada.",
+                    "content": "Genera mi siguiente misión de emprendimiento.",
                 },
             ],
             model="llama-3.3-70b-versatile",
@@ -133,37 +143,33 @@ def generar_mision_ia(estado_arbol: str, nivel_usuario: int) -> dict:
             return json.loads(match.group(0))
 
         return {
-            "titulo_mision": "Análisis de Resiliencia",
-            "descripcion": "Documenta una lección clave aprendida en tu proyecto.",
+            "titulo_mision": "Misión de Exploración",
+            "descripcion": "Dibuja cómo te imaginas tu futura empresa.",
             "recompensa_puntos": 50,
         }
     except Exception as e:
-        print(f"❌ Error al generar misión dinámicamente: {e}")
         return {
-            "titulo_mision": "Sincronización de Enfoque",
-            "descripcion": "Define el entregable clave de tu jornada.",
+            "titulo_mision": "Dudi nos visitó",
+            "descripcion": "Descansa un momento y luego intenta pedir una misión nuevamente.",
             "recompensa_puntos": 50,
         }
 
 
 def generar_pagina_libro_ia(titulo_hito: str, contexto_usuario: str) -> str:
     """
-    Sintetiza la experiencia y reflexiones del usuario en una página
-    narrativa e inspiradora para su 'Libro Vivo'.
+    Sintetiza la experiencia como el 'Plan de Negocios' del niño.
     """
     api_key = os.getenv("GROQ_API_KEY", "").strip()
     if not api_key:
-        return (
-            f"Hoy superé un gran desafío: {titulo_hito}. Un paso firme en mi historia."
-        )
+        return f"Hoy avancé en mi empresa superando: {titulo_hito}."
 
     try:
         client = Groq(api_key=api_key)
 
         prompt_sistema = """
-        Eres un biógrafo experto y mentor de liderazgo. Tu tarea es tomar un logro u objetivo completado 
-        por el usuario y convertirlo en un párrafo reflexivo, motivador e inspirador (máximo 80 palabras).
-        Escribe siempre en PRIMERA PERSONA ("Hoy comprendí...", "Al superar este reto...").
+        Eres un biógrafo infantil. Convierte el logro del niño en un párrafo inspirador (máximo 80 palabras) 
+        que formará parte de su 'Libro Vivo' (su primer Plan de Negocios).
+        Escribe en PRIMERA PERSONA como si el niño lo estuviera escribiendo con orgullo ("Hoy logré...", "Mi empresa está creciendo...").
         """
 
         chat_completion = client.chat.completions.create(
@@ -180,5 +186,4 @@ def generar_pagina_libro_ia(titulo_hito: str, contexto_usuario: str) -> str:
 
         return chat_completion.choices[0].message.content.strip()
     except Exception as e:
-        print(f"❌ Error al redactar página del Libro Vivo: {e}")
-        return f"Con el logro '{titulo_hito}', marco un hito clave en mi camino de evolución personal e ingenieril."
+        return f"Con el logro '{titulo_hito}', doy un paso gigante en la creación de mi empresa."

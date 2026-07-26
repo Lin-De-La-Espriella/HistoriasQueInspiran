@@ -173,12 +173,16 @@ def listar_usuarios(skip: int = 0, limit: int = 100, db: Session = Depends(get_d
 
 
 # ==========================================
-# SECCIÓN: GAMIFICACIÓN (MISIONES - MODO DEV ACTIVO)
+# SECCIÓN: GAMIFICACIÓN (MISIONES - IA ADAPTATIVA)
 # ==========================================
 
 
 @app.post("/usuarios/{usuario_id}/misiones/generar_ia", tags=["Gamificación"])
-def crear_mision_personalizada_ia(usuario_id: int, db: Session = Depends(get_db)):
+def crear_mision_personalizada_ia(
+    usuario_id: int,
+    enfoque: str = "emprendimiento",  # 👈 Se añade el enfoque para guiar a los niños
+    db: Session = Depends(get_db),
+):
     """Endpoint que invoca a XiXi vía Groq Cloud para crear una misión dinámica."""
     user = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
     if not user:
@@ -188,15 +192,14 @@ def crear_mision_personalizada_ia(usuario_id: int, db: Session = Depends(get_db)
     nivel = user.pasaporte.nivel_actual if user.pasaporte else 1
 
     datos_mision = ia_service.generar_mision_ia(
-        estado_arbol=estado_arbol, nivel_usuario=nivel
+        estado_arbol=estado_arbol, nivel_usuario=nivel, enfoque=enfoque
     )
 
     nueva_mision = models.Mision(
         usuario_id=usuario_id,
         titulo_mision=datos_mision.get("titulo_mision", "Desafío de Evolución"),
         descripcion=datos_mision.get(
-            "descripcion",
-            "Completa este hito estratégico para impulsar tu crecimiento.",
+            "descripcion", "Completa este hito estratégico para tu empresa."
         ),
         recompensa_puntos=datos_mision.get("recompensa_puntos", 50),
         estado="pendiente",
@@ -334,8 +337,6 @@ def guardar_interaccion(
     usuario_id: int,
     interaccion: schemas.InteraccionCrear,
     db: Session = Depends(get_db),
-    # NOTA: Remueve la dependencia si presentas 401 Unauthorized en el chat
-    # usuario_actual: dict = Depends(security.obtener_usuario_actual),
 ):
     db_usuario = (
         db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
@@ -349,13 +350,19 @@ def guardar_interaccion(
     )
     nivel_usuario = db_usuario.pasaporte.nivel_actual if db_usuario.pasaporte else 1
 
+    # 👈 Extraemos el rol activo enviado desde el frontend
+    rol_activo = getattr(interaccion, "rol_activo", "emprendimiento")
+
     analisis_ia = ia_service.generar_analisis_xixi(
-        mensaje_usuario=mensaje, estado_arbol=estado_arbol, nivel_usuario=nivel_usuario
+        mensaje_usuario=mensaje,
+        estado_arbol=estado_arbol,
+        nivel_usuario=nivel_usuario,
+        rol_activo=rol_activo,
     )
 
     xp_ganado = analisis_ia.get("xp_ganado", 5)
     energia_ganada = analisis_ia.get("energia_ganada", 2)
-    respuesta_xixi = analisis_ia.get("respuesta_guia", "Frecuencia recibida.")
+    respuesta_xixi = analisis_ia.get("respuesta_guia", "Frecuencia galáctica recibida.")
 
     interaccion.respuesta_guia = respuesta_xixi
 

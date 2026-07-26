@@ -64,6 +64,9 @@ class InteraccionCrear(BaseModel):
     personaje: str
     mensaje_usuario: str
     respuesta_guia: Optional[str] = ""
+    rol_activo: Optional[str] = (
+        "emprendimiento"  # 👈 Nuevo campo para mapear si el niño diseña, planea o costea
+    )
 
 
 class InteraccionRespuesta(InteraccionCrear):
