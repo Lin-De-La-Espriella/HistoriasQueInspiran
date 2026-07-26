@@ -555,17 +555,26 @@ with col2:
             completadas = [m for m in misiones_list if m.get("estado") == "completada"]
 
             if not completadas:
-                st.caption(
-                    "Tu diario aún está en blanco. Completa misiones para escribir tus primeros capítulos."
-                )
+                    st.caption(
+                        "Tu diario aún está en blanco. Completa misiones para escribir tus primeros capítulos."
+                    )
             else:
                 for i, m in enumerate(completadas, start=1):
+                    titulo_mision = m.get("titulo_mision", "Evolución Continua")
+                    descripcion = m.get("descripcion", "Evolución registrada en la bio-estructura.")
+                        
+                    # Renderizado con Jerarquía Visual Estricta (HTML/CSS inyectado)
                     st.markdown(
                         f"""
-                        **📄 Página {i}:** *Hito Alcanzado — {m.get("titulo_mision")}* > "{m.get("descripcion", "Evolución registrada en la bio-estructura.")}"
-                        ---
-                        """
-                    )
+                            <div style="font-size: 14px; margin-bottom: 8px; line-height: 1.4;">
+                                <span style="color: #00FFCC; font-weight: bold;">📄 Página {i}:</span> 
+                                <span style="color: #F3F4F6; font-weight: 600;">Hito Alcanzado — {titulo_mision}</span><br>
+                                <span style="color: #9CA3AF; font-style: italic;">"{descripcion}"</span>
+                            </div>
+                            <hr style="margin: 8px 0px; border: 0; border-top: 1px solid #374151;">
+                            """,
+                            unsafe_allow_html=True
+                        )
         else:
             st.caption("Sincronizando el canal de lectura...")
 
