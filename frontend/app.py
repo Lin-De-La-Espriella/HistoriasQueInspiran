@@ -899,6 +899,7 @@ with st.expander("📈 Ver desglose de balance analítico..."):
         """
     )
 
+
 # =========================================================
 # 📜 CLASE DE DISEÑO PARA CERTIFICADO/REPORTE EJECUTIVO PDF
 # =========================================================
@@ -1090,12 +1091,15 @@ with col_rep1:
 
 with col_rep2:
     try:
+        # Calculamos el nivel dinámico antes de llamar la función PDF
+        nivel_real = (xp_base // 100) + 1
+
         pdf_bytes = generar_pdf_certificado(
             nombre_usuario=st.session_state.get("nombre_usuario", "Lindley"),
             usuario_id=st.session_state.get("usuario_id", 1),
-            nivel=st.session_state.get("nivel", 5),
+            nivel=nivel_real,  # 👈 Sincronización exacta con los 305 XP
             xp_totales=xp_base,
-            fase_arbol=st.session_state.get("fase_arbol", "Arbol Joven Creativo"),
+            fase_arbol=st.session_state.get("fase_arbol", "1. Semilla"),
             pts_m=pts_mental,
             pts_e=pts_emocional,
             pts_s=pts_social,
