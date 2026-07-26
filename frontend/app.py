@@ -2,6 +2,14 @@ import json
 import os
 import requests
 import streamlit as st
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# 🚀 Lectura limpia desde el entorno (Sin credenciales en duro)
+API_URL = os.getenv("API_URL", "https://historias-que-inspiran-api.onrender.com")
+ENV_MODE = os.getenv("ENV_MODE", "production")  # 'development' o 'production'
 
 # ==========================================
 # 📐 CONFIGURACIÓN VISUAL Y TÁCTIL (Tablet Redmi Pad)
@@ -87,27 +95,25 @@ if "eslogan_empresa" not in st.session_state:
 # ==========================================
 if not st.session_state.get("autenticado", False):
     with st.sidebar:
-        st.markdown("### 🔐 Acceso al Universo")
-        email_input = st.text_input("Correo", value=DEV_EMAIL)
-        password_input = st.text_input("Contraseña", type="password", value=DEV_PASS)
+        st.markdown(f"### 👤 Creador: **{st.session_state.get('nombre_usuario', 'Rafael')}**")[cite: 11]
+    if st.button("🚪 Cerrar Sesión"):
+        st.cache_data.clear()
+        st.session_state.token = None
+        st.session_state.usuario_id = None
+        st.session_state.paso_onboarding = 1
+        st.rerun()
 
-        if st.button("🚀 Entrar al Juego"):
-            try:
-                response = requests.post(
-                    f"{API_URL}/auth/login",
-                    json={"email": email_input, "password": password_input},
-                )
-                if response.status_code == 200:
-                    data_token = response.json()
-                    st.session_state["token"] = data_token.get("access_token")
-                    st.session_state["autenticado"] = True
-                    st.session_state["usuario_id"] = data_token.get("usuario_id", 1)
-                    st.session_state["nombre_usuario"] = data_token.get(
-                        "nombre", "Rafael"
-                    )
-                    st.rerun()
-            except Exception as e:
-                st.error(f"Error: {e}")
+    # 🚀 Separación de Desarrollo vs Producción Comercial
+    if ENV_MODE == "development":
+        st.markdown("---")
+        st.caption("🛠️ Modo Desarrollador Activo")
+        if st.button("🔥 Reiniciar Aventura desde Cero"):
+            res_reset = requests.post(f"{API_URL}/usuarios/{usuario_id}/reset-base-cero", headers=headers)
+            st.session_state.paso_onboarding = 1
+            st.toast("🧹 Aventura reiniciada al inicio", icon="✨")
+            st.rerun()
+    
+    st.error(f"Error: {e}")
 
     # Landing Page
     st.markdown(

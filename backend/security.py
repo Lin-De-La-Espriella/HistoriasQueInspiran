@@ -9,7 +9,12 @@ import bcrypt
 
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY", "super_secret_key_historias_que_inspiran_2026")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError(
+        "⚠️ ERROR CRÍTICO DE SEGURIDAD: La variable SECRET_KEY no está definida en el entorno."
+    )
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
