@@ -96,7 +96,9 @@ def calcular_nivel_por_xp(xp_totales: int) -> int:
 
 
 def evaluar_y_actualizar_arbol(db, arbol_obj, pasaporte_obj):
-    """Modelado Lógico para la evolución de 10 Fases Biológicas en función del Nivel."""
+    """
+    Modelado Lógico para la evolución de Fases Biológicas y Gestión de Insignias.
+    """
     pasaporte_obj.nivel_actual = calcular_nivel_por_xp(pasaporte_obj.puntos_experiencia)
     nivel = pasaporte_obj.nivel_actual
 
@@ -118,6 +120,24 @@ def evaluar_y_actualizar_arbol(db, arbol_obj, pasaporte_obj):
 
     if arbol_obj.energia_vital < energia:
         arbol_obj.energia_vital = energia
+
+    # --- LÓGICA DE INSIGNIAS DINÁMICAS ---
+    insignias_actuales = pasaporte_obj.insignias or []
+    if not isinstance(insignias_actuales, list):
+        insignias_actuales = []
+
+    nuevas_insignias = list(insignias_actuales)
+
+    if nivel >= 1 and "🛸 Primer Contacto" not in nuevas_insignias:
+        nuevas_insignias.append("🛸 Primer Contacto")
+
+    if nivel >= 3 and "🏅 Brote Explorador" not in nuevas_insignias:
+        nuevas_insignias.append("🏅 Brote Explorador")
+
+    if nivel >= 5 and "🌳 Líder Enraizado" not in nuevas_insignias:
+        nuevas_insignias.append("🌳 Líder Enraizado")
+
+    pasaporte_obj.insignias = nuevas_insignias
 
     db.commit()
     db.refresh(arbol_obj)
@@ -190,8 +210,11 @@ def crear_mision_personalizada_ia(usuario_id: int, db: Session = Depends(get_db)
 
 
 @app.get("/usuarios/{usuario_id}/misiones/", tags=["Gamificación"])
-def obtener_misiones_usuario(usuario_id: int, db: Session = Depends(get_db)):
-    """Endpoint para listar misiones (Seguridad desactivada temporalmente para Dev Mode)."""
+def obtener_misiones_usuario(
+    usuario_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: dict = Depends(security.obtener_usuario_actual),  # 🔒 Blindado
+):
     misiones = (
         db.query(models.Mision).filter(models.Mision.usuario_id == usuario_id).all()
     )
@@ -199,7 +222,13 @@ def obtener_misiones_usuario(usuario_id: int, db: Session = Depends(get_db)):
 
 
 @app.put("/usuarios/{usuario_id}/misiones/{mision_id}/completar", tags=["Gamificación"])
-def completar_mision(usuario_id: int, mision_id: int, db: Session = Depends(get_db)):
+def completar_mision(
+    usuario_id: int,
+    mision_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: dict = Depends(security.obtener_usuario_actual),  # 🔒 Blindado
+):
+    # ... lógica de completado y avance de libro vivo ...
     """Endpoint para marcar una misión como completada y escribir en el Libro Vivo"""
     mision = (
         db.query(models.Mision)

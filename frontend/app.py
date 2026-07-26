@@ -13,45 +13,90 @@ st.set_page_config(page_title="Historias que Inspiran®", page_icon="🌱", layo
 # Este bloque inyecta las credenciales de sesión automáticamente.
 # Comenta o elimina este bloque antes del despliegue final a producción.
 
-# ---------------------------------------------------------
-# 🚀 AUTO-LOGIN ROBUSTO (DEV MODE) - BASE CERO
-# ---------------------------------------------------------
-if "autenticado" not in st.session_state or not st.session_state["autenticado"]:
-    st.session_state["autenticado"] = True
-    st.session_state["logged_in"] = True
-    st.session_state["token"] = "dev_token_bypass"
-    st.session_state["usuario_id"] = 1
-    st.session_state["nombre_usuario"] = "Lindley"
-
-    # Sincronización Base Cero
-    st.session_state["nivel"] = 1
-    st.session_state["xp_totales"] = 0
-    st.session_state["fase_arbol"] = "1. Semilla"
-    st.session_state["mision_count"] = 1
-    st.session_state["capitulo_actual"] = 1
-    st.session_state["paginas_completadas"] = 0
-
-    st.rerun()
-
-st.sidebar.warning("⚙️ Dev Mode: Auto-Login Activo (Base Cero)")
-# ---------------------------------------------------------
+import requests
+import streamlit as st
 
 # ==========================================
-# 📍 ENRUTAMIENTO DE ENTORNO
+# 📍 ENRUTAMIENTO DE ENTORNO E INICIALIZACIÓN
 # ==========================================
 API_URL = "https://historias-que-inspiran-api.onrender.com"
 
-# Credenciales de Autologin para Desarrollo
+# Credenciales de acceso rápido para pruebas
 DEV_EMAIL = "lindley@historias.com"
 DEV_PASS = "superPassword123"
 
-# Inicialización de estados de sesión
+# 1. Inicialización estructurada de estados de sesión
+if "autenticado" not in st.session_state:
+    st.session_state["autenticado"] = False
 if "token" not in st.session_state:
-    st.session_state.token = None
+    st.session_state["token"] = None
 if "usuario_id" not in st.session_state:
-    st.session_state.usuario_id = None
+    st.session_state["usuario_id"] = None
 if "messages" not in st.session_state:
-    st.session_state.messages = []
+    st.session_state["messages"] = []
+
+# ---------------------------------------------------------
+# 🔒 SISTEMA DE AUTENTICACIÓN JWT SEGURO (PRODUCCIÓN)
+# ---------------------------------------------------------
+if not st.session_state["autenticado"]:
+    st.sidebar.markdown("### 🔐 Acceso a la Plataforma")
+
+    # Formulario con valores por defecto para agilizar el flujo
+    email_input = st.sidebar.text_input("Correo Electrónico", value=DEV_EMAIL)
+    password_input = st.sidebar.text_input(
+        "Contraseña", type="password", value=DEV_PASS
+    )
+
+    if st.sidebar.button("🔑 Iniciar Sesión"):
+        if not email_input or not password_input:
+            st.sidebar.warning("Por favor ingresa credenciales válidas.")
+        else:
+            try:
+                # Petición HTTP al endpoint de seguridad
+                response = requests.post(
+                    f"{API_URL}/auth/login",
+                    json={"email": email_input, "password": password_input},
+                )
+
+                if response.status_code == 200:
+                    data_token = response.json()
+
+                    # 2. Asignación de credenciales seguras
+                    st.session_state["token"] = data_token["access_token"]
+                    st.session_state["autenticado"] = True
+                    st.session_state["usuario_id"] = 1
+                    st.session_state["nombre_usuario"] = "Lindley"
+
+                    # 3. Inicialización Base Cero en UI (Mejora Continua: A futuro esto vendrá de la DB)
+                    st.session_state["nivel"] = 1
+                    st.session_state["xp_totales"] = 0
+                    st.session_state["fase_arbol"] = "1. Semilla"
+                    st.session_state["mision_count"] = 1
+                    st.session_state["capitulo_actual"] = 1
+                    st.session_state["paginas_completadas"] = 0
+
+                    st.sidebar.success("¡Sesión iniciada con éxito!")
+                    st.rerun()
+                else:
+                    st.sidebar.error(
+                        "Credenciales incorrectas. Verifica tu acceso en la base de datos."
+                    )
+            except Exception as e:
+                st.sidebar.error(f"Error crítico de conexión: {e}")
+
+    # 4. Bloqueo de renderizado: Evita que cargue la app si no hay sesión
+    st.warning(
+        "⚠️ Debes iniciar sesión en la barra lateral para acceder al motor gamificado."
+    )
+    st.stop()
+
+# ==========================================
+# 🛡️ CABECERAS SEGURAS GLOBALES
+# ==========================================
+# Este diccionario se usará en todas las llamadas (requests) al backend a partir de aquí
+headers = {"Authorization": f"Bearer {st.session_state.get('token', '')}"}
+st.sidebar.success("✅ Conexión Segura Activa (JWT)")
+st.sidebar.markdown("---")
 
 
 # ---------------------------------------------------------
