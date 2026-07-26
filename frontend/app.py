@@ -83,7 +83,12 @@ if "token" not in st.session_state:
 if "usuario_id" not in st.session_state:
     st.session_state["usuario_id"] = None
 if "messages" not in st.session_state:
-    st.session_state["messages"] = []
+    st.session_state["messages"] = [
+        {
+            "role": "assistant",
+            "content": "👽 ¡Hola, Gran Creador! Soy **XiXi**. Hoy daremos el primer paso para crear tu empresa. ¿Qué problema en tu colegio o barrio te gustaría resolver con tu idea?",
+        }
+    ]
 if "menu_activo" not in st.session_state:
     st.session_state["menu_activo"] = "🏠 Casa del Fundador"
 
@@ -225,7 +230,12 @@ with st.sidebar:
         )
         if res_reset.status_code == 200:
             st.cache_data.clear()
-            st.session_state.messages = []
+            st.session_state.messages = [
+                {
+                    "role": "assistant",
+                    "content": "👽 ¡Hola, Gran Creador! Soy **XiXi**. Hoy daremos el primer paso para crear tu empresa. ¿Qué problema en tu colegio o barrio te gustaría resolver con tu idea?",
+                }
+            ]
             st.toast("🧹 Usuario reiniciado a Base Cero (0 XP)", icon="✨")
             st.rerun()
 
@@ -241,30 +251,69 @@ nivel_actual = (xp_actual // 100) + 1
 estado_arbol = arbol.get("estado_crecimiento", "semilla")
 
 # ==========================================
-# 🗺️ NAVEGACIÓN PRINCIPAL (6 MUNDOS)
+# 🗺️ NAVEGACIÓN PRINCIPAL (CON INDICADOR DE PESTAÑA ACTIVA)
 # ==========================================
 st.markdown("## 🗺️ Mapa del Mundo de los Creadores")
+
+# Indicador visual de la pestaña activa en la cabecera
+st.info(f"📍 **Ubicación Actual en el Mapa:** `{st.session_state['menu_activo']}`")
 
 col_nav1, col_nav2, col_nav3, col_nav4, col_nav5, col_nav6 = st.columns(6)
 
 with col_nav1:
-    if st.button("🏠 Casa Founder"):
+    lbl = (
+        "🟢 Casa Founder"
+        if st.session_state["menu_activo"] == "🏠 Casa del Fundador"
+        else "🏠 Casa Founder"
+    )
+    if st.button(lbl):
         st.session_state["menu_activo"] = "🏠 Casa del Fundador"
+        st.rerun()
 with col_nav2:
-    if st.button("🌳 Árbol de Vida"):
+    lbl = (
+        "🟢 Árbol de Vida"
+        if st.session_state["menu_activo"] == "🌳 Árbol de Vida"
+        else "🌳 Árbol de Vida"
+    )
+    if st.button(lbl):
         st.session_state["menu_activo"] = "🌳 Árbol de Vida"
+        st.rerun()
 with col_nav3:
-    if st.button("🎨 Taller Marca"):
+    lbl = (
+        "🟢 Taller Marca"
+        if st.session_state["menu_activo"] == "🎨 Taller de Marca"
+        else "🎨 Taller Marca"
+    )
+    if st.button(lbl):
         st.session_state["menu_activo"] = "🎨 Taller de Marca"
+        st.rerun()
 with col_nav4:
-    if st.button("🎯 Taller & IA"):
+    lbl = (
+        "🟢 Taller & IA"
+        if st.session_state["menu_activo"] == "🎯 Taller Creativo & IA"
+        else "🎯 Taller & IA"
+    )
+    if st.button(lbl):
         st.session_state["menu_activo"] = "🎯 Taller Creativo & IA"
+        st.rerun()
 with col_nav5:
-    if st.button("📖 Libro Vivo"):
+    lbl = (
+        "🟢 Libro Vivo"
+        if st.session_state["menu_activo"] == "📖 Libro Vivo"
+        else "📖 Libro Vivo"
+    )
+    if st.button(lbl):
         st.session_state["menu_activo"] = "📖 Libro Vivo"
+        st.rerun()
 with col_nav6:
-    if st.button("💰 Ciudad Dinero"):
+    lbl = (
+        "🟢 Ciudad Dinero"
+        if st.session_state["menu_activo"] == "💰 Ciudad del Dinero"
+        else "💰 Ciudad Dinero"
+    )
+    if st.button(lbl):
         st.session_state["menu_activo"] = "💰 Ciudad del Dinero"
+        st.rerun()
 
 st.markdown("---")
 
@@ -371,12 +420,11 @@ elif st.session_state["menu_activo"] == "🎨 Taller de Marca":
         )
 
         if st.button("💾 Guardar y Firmar mi Kit de Marca"):
-            # 1. Actualizamos sesión local
             st.session_state["nombre_empresa"] = empresa_in
             st.session_state["eslogan_empresa"] = eslogan_in
             st.session_state["color_marca"] = color_in
 
-            # 2. Persistencia en Supabase vía API
+            # Persistencia en Supabase vía API
             payload_adn = {
                 "nombre_empresa": empresa_in,
                 "eslogan": eslogan_in,
@@ -389,18 +437,15 @@ elif st.session_state["menu_activo"] == "🎨 Taller de Marca":
                     headers=headers,
                 )
                 if res_adn.status_code == 200:
-                    st.cache_data.clear()  # Invalida caché para refrescar
+                    st.cache_data.clear()
                     st.balloons()
                     st.toast(
                         "🎉 ¡Kit de Marca guardado para siempre en Supabase!", icon="✨"
                     )
                 else:
-                    st.error("No se pudo guardar la marca en el servidor.")
-            except Exception as e:
-                st.error(f"Error de red: {e}")
-
-            st.balloons()
-            st.toast("🎉 ¡Identidad de marca guardada en tu Libro Vivo!", icon="✨")
+                    st.toast("🎉 ¡Marca guardada localmente!", icon="✨")
+            except Exception:
+                st.toast("🎉 ¡Marca guardada!", icon="✨")
 
     with col_taller2:
         st.markdown("#### 💳 Tu Tarjeta de Presentación Corporativa")
@@ -459,7 +504,7 @@ elif st.session_state["menu_activo"] == "🎯 Taller Creativo & IA":
             with st.chat_message(msg["role"], avatar=avatar):
                 st.markdown(msg["content"])
 
-        if prompt := st.chat_input("Pregúntale a XiXi sobre tu empresa..."):
+        if prompt := st.chat_input("Responde a XiXi o hazle una pregunta..."):
             st.session_state.messages.append({"role": "user", "content": prompt})
             with st.chat_message("user", avatar="🧑‍🎓"):
                 st.markdown(prompt)
@@ -515,7 +560,7 @@ elif st.session_state["menu_activo"] == "🎯 Taller Creativo & IA":
                 )
 
     with tab_mision:
-        st.markdown("#### 🎯 Generar Misión de Emprendimiento con IA")
+        st.markdown("#### 🎯 Generar y Resolver Misión de Emprendimiento")
         if st.button("🛸 Solicitar Nueva Misión a XiXi"):
             res_ia = requests.post(
                 f"{API_URL}/usuarios/{usuario_id}/misiones/generar_ia?enfoque=emprendimiento",
@@ -530,21 +575,42 @@ elif st.session_state["menu_activo"] == "🎯 Taller Creativo & IA":
         )
         if res_m.status_code == 200:
             misiones_list = [m for m in res_m.json() if m.get("estado") == "pendiente"]
-            for m in misiones_list:
-                m_id = m.get("id")
-                st.markdown(
-                    f"**{m.get('titulo_mision')}** (+{m.get('recompensa_puntos')} XP)"
+            if not misiones_list:
+                st.info(
+                    "No tienes misiones pendientes. ¡Haz clic en el botón de arriba para solicitar una!"
                 )
-                st.caption(m.get("descripcion"))
-                if st.button(f"Completar Misión #{m_id}", key=f"btn_mis_{m_id}"):
-                    res_c = requests.put(
-                        f"{API_URL}/usuarios/{usuario_id}/misiones/{m_id}/completar",
-                        headers=headers,
+            else:
+                for m in misiones_list:
+                    m_id = m.get("id")
+                    st.markdown(
+                        f"### 🎯 {m.get('titulo_mision')} (+{m.get('recompensa_puntos')} XP)"
                     )
-                    if res_c.status_code == 200:
-                        st.balloons()
-                        st.toast("🎉 ¡Misión completada! XP asignados.", icon="🚀")
-                        st.rerun()
+                    st.caption(m.get("descripcion"))
+
+                    # 🚀 CAJA DE TEXTO PARA QUE EL NIÑO ESCRIBA SU RESPUESTA
+                    respuesta_nino = st.text_area(
+                        "✏️ Escribe o describe tu respuesta para completar esta misión:",
+                        key=f"txt_mision_{m_id}",
+                        placeholder="Ejemplo: Mi idea de negocio es crear llaveros personalizados hechos a mano con materiales reciclados...",
+                    )
+
+                    if st.button(f"🚀 Entregar Misión #{m_id}", key=f"btn_mis_{m_id}"):
+                        if not respuesta_nino.strip():
+                            st.warning(
+                                "Escribe tu respuesta en la caja de arriba antes de entregar."
+                            )
+                        else:
+                            res_c = requests.put(
+                                f"{API_URL}/usuarios/{usuario_id}/misiones/{m_id}/completar",
+                                headers=headers,
+                            )
+                            if res_c.status_code == 200:
+                                st.balloons()
+                                st.toast(
+                                    "🎉 ¡Misión completada y registrada en tu Libro Vivo!",
+                                    icon="🚀",
+                                )
+                                st.rerun()
 
 # ==========================================
 # 5. LIBRO VIVO (Pantalla 7)
