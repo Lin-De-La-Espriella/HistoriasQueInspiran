@@ -6,16 +6,16 @@ import io
 from fpdf import FPDF
 
 # ==========================================
-# 📐 CONFIGURACIÓN TÁCTIL E INTERACTIVA (Redmi Pad / Tablet)
+# 📐 CONFIGURACIÓN TÁCTIL Y VISUAL (Redmi Pad / Tablet)
 # ==========================================
 st.set_page_config(
-    page_title="Historias que Inspiran® | Plataforma de Emprendimiento",
+    page_title="Historias que Inspiran® | Ecosistema Didáctico",
     page_icon="🌱",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
-# Estilos CSS Personalizados estilo App/Videojuego
+# Estilos CSS Personalizados: Resalte Neón + Opacidad de Pestañas
 st.markdown(
     """
 <style>
@@ -24,45 +24,38 @@ st.markdown(
         color: #F3F4F6;
     }
     
+    /* Botones estándar */
     .stButton>button {
-        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-        color: white;
+        background: #1E293B;
+        color: #94A3B8;
         font-weight: bold;
-        border-radius: 15px;
-        border: none;
-        padding: 12px 24px;
-        box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.39);
+        border-radius: 12px;
+        border: 2px solid #334155;
+        padding: 10px 18px;
         transition: all 0.3s ease;
         width: 100%;
+        opacity: 0.45; /* Opaque para inactivos */
     }
     
-    .stButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.55);
+    /* Pestaña Activa Resaltada con Brillo Neón */
+    .active-world button {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
+        color: #FFFFFF !important;
+        border: 2px solid #00FFCC !important;
+        box-shadow: 0 0 20px #00FFCC !important;
+        opacity: 1.0 !important; /* Totalmente visible */
+        transform: scale(1.05);
     }
 
-    .brand-card {
+    /* Tarjetas Interactivas de Rutas */
+    .route-card {
         background-color: #1E293B;
         border-radius: 20px;
-        padding: 25px;
+        padding: 20px;
         border: 2px solid #38BDF8;
+        text-align: center;
         box-shadow: 0 10px 25px -5px rgba(56, 189, 248, 0.2);
-    }
-    
-    .chat-bubble-xixi {
-        background-color: #1E293B;
-        border-left: 5px solid #00FFCC;
-        padding: 15px;
-        border-radius: 12px;
-        margin-bottom: 10px;
-    }
-    
-    .chat-bubble-dudi {
-        background-color: #334155;
-        border-left: 5px solid #F43F5E;
-        padding: 15px;
-        border-radius: 12px;
-        margin-bottom: 10px;
+        margin-bottom: 20px;
     }
 </style>
 """,
@@ -70,7 +63,7 @@ st.markdown(
 )
 
 # ==========================================
-# 📍 ENRUTAMIENTO DE ENTORNO E INICIALIZACIÓN
+# 📍 ENRUTAMIENTO Y ESTADOS GLOBALES
 # ==========================================
 API_URL = "https://historias-que-inspiran-api.onrender.com"
 DEV_EMAIL = "lindley@historias.com"
@@ -83,80 +76,51 @@ if "token" not in st.session_state:
 if "usuario_id" not in st.session_state:
     st.session_state["usuario_id"] = None
 if "messages" not in st.session_state:
-    st.session_state["messages"] = [
-        {
-            "role": "assistant",
-            "content": "👽 ¡Hola, Gran Creador! Soy **XiXi**. Hoy daremos el primer paso para crear tu empresa. ¿Qué problema en tu colegio o barrio te gustaría resolver con tu idea?",
-        }
-    ]
+    st.session_state["messages"] = []
 if "menu_activo" not in st.session_state:
     st.session_state["menu_activo"] = "🏠 Casa del Fundador"
 
-# Estados para la identidad de la marca infantil
+# Estados de la Aventura Didáctica Infantil
+if "avatar_elegido" not in st.session_state:
+    st.session_state["avatar_elegido"] = "👦 Rafa"
+if "ruta_negocio" not in st.session_state:
+    st.session_state["ruta_negocio"] = None
 if "nombre_empresa" not in st.session_state:
     st.session_state["nombre_empresa"] = "Mi Empresa Mágica"
 if "eslogan_empresa" not in st.session_state:
     st.session_state["eslogan_empresa"] = "Hecho para inspirar."
-if "color_marca" not in st.session_state:
-    st.session_state["color_marca"] = "#00FFCC"
-
 
 # ==========================================
-# ⚡ FUNCIONES AUXILIARES OPTIMIZADAS (CACHÉ)
-# ==========================================
-@st.cache_data(ttl=60, show_spinner=False)
-def obtener_libro_vivo_cached(api_url, usuario_id, token):
-    headers = {"Authorization": f"Bearer {token}"}
-    try:
-        res = requests.get(f"{api_url}/usuarios/{usuario_id}/libro", headers=headers)
-        if res.status_code == 200:
-            return res.json()
-    except Exception:
-        pass
-    return {"capitulo_actual": 1, "paginas_completadas": 0}
-
-
-# ==========================================
-# 🔒 SISTEMA DE AUTENTICACIÓN / LANDING INFANTIL
+# 🔒 AUTENTICACIÓN Y PANTALLA BIENVENIDA
 # ==========================================
 if not st.session_state.get("autenticado", False):
     with st.sidebar:
         st.markdown("### 🔐 Acceso al Universo")
-        tab_login, tab_registro = st.tabs(["🔑 Iniciar Sesión", "📝 Crear Cuenta"])
+        email_input = st.text_input("Correo", value=DEV_EMAIL)
+        password_input = st.text_input("Contraseña", type="password", value=DEV_PASS)
 
-        with tab_login:
-            email_input = st.text_input(
-                "Correo Electrónico", value=DEV_EMAIL, key="login_email"
-            )
-            password_input = st.text_input(
-                "Contraseña", type="password", value=DEV_PASS, key="login_pass"
-            )
-
-            if st.button("🚀 Entrar al Juego", key="btn_login"):
-                try:
-                    response = requests.post(
-                        f"{API_URL}/auth/login",
-                        json={"email": email_input, "password": password_input},
+        if st.button("🚀 Entrar al Juego"):
+            try:
+                response = requests.post(
+                    f"{API_URL}/auth/login",
+                    json={"email": email_input, "password": password_input},
+                )
+                if response.status_code == 200:
+                    data_token = response.json()
+                    st.session_state["token"] = data_token.get("access_token")
+                    st.session_state["autenticado"] = True
+                    st.session_state["usuario_id"] = data_token.get("usuario_id", 1)
+                    st.session_state["nombre_usuario"] = data_token.get(
+                        "nombre", "Rafael"
                     )
-                    if response.status_code == 200:
-                        data_token = response.json()
-                        st.session_state["token"] = data_token.get("access_token")
-                        st.session_state["autenticado"] = True
-                        st.session_state["usuario_id"] = data_token.get("usuario_id", 1)
-                        st.session_state["nombre_usuario"] = data_token.get(
-                            "nombre", "Rafael"
-                        )
-                        st.success("¡Bienvenido Creador!")
-                        st.rerun()
-                    else:
-                        st.error("Credenciales incorrectas.")
-                except Exception as e:
-                    st.error(f"Error de conexión: {e}")
+                    st.rerun()
+            except Exception as e:
+                st.error(f"Error: {e}")
 
-    # Landing Page de Bienvenida
+    # Landing Page Ilustrada
     st.markdown(
         """
-    <div style="text-align: center; padding: 30px 10px;">
+    <div style="text-align: center; padding: 20px;">
         <h1 style="font-size: 48px; color: #00FFCC; font-weight: 900;">
             🌱 HISTORIAS QUE INSPIRAN®
         </h1>
@@ -168,39 +132,29 @@ if not st.session_state.get("autenticado", False):
         unsafe_allow_html=True,
     )
 
-    col_hero1, col_hero2 = st.columns([1, 1])
-    with col_hero1:
+    col_h1, col_h2 = st.columns(2)
+    with col_h1:
         st.markdown(
             """
-        <div style="background-color: #1E293B; border-radius: 20px; padding: 25px; border: 2px solid #00FFCC;">
-            <h2 style="color: #00FFCC;">👽 ¡Hola, Futuro Creador!</h2>
-            <p style="font-size: 18px; line-height: 1.6;">
-                Soy <b>XiXi</b>, tu compañera de aventuras. Juntos vamos a transformar tus ideas en una empresa real. 
-                Aprenderemos a diseñar tu marca, crear tu logo, organizar tu dinero y compartir tu talento con el mundo.
-            </p>
+        <div class="route-card" style="border-color: #00FFCC;">
+            <h2 style="color: #00FFCC;">👽 ¡Bienvenido con XiXi!</h2>
+            <p style="font-size: 18px;">Acompaña a XiXi a explorar mundos y crear tu propia empresa desde cero.</p>
+        </div>
+        """,
+            unsafe_allow_html=True,
+        )
+    with col_h2:
+        st.markdown(
+            """
+        <div class="route-card" style="border-color: #F43F5E;">
+            <h2 style="color: #F43F5E;">☁️ Abraza tus dudas con Dudi</h2>
+            <p style="font-size: 18px;">Tener miedo o dudas es normal. ¡Juntos aprenderemos a superar cada reto!</p>
         </div>
         """,
             unsafe_allow_html=True,
         )
 
-    with col_hero2:
-        st.markdown(
-            """
-        <div style="background-color: #1E293B; border-radius: 20px; padding: 25px; border: 2px solid #F43F5E;">
-            <h2 style="color: #F43F5E;">☁️ ¿Dudas o Miedos? ¡Hola, Dudi!</h2>
-            <p style="font-size: 18px; line-height: 1.6;">
-                A veces aparecerá <b>Dudi</b> a preguntarte <i>"¿Y si me equivoco?"</i>. 
-                ¡No te preocupes! En este universo aprenderemos que los errores también nos enseñan y nos hacen más fuertes.
-            </p>
-        </div>
-        """,
-            unsafe_allow_html=True,
-        )
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.info(
-        "👈 **Abre la barra lateral de la izquierda e inicia sesión para comenzar tu aventura.**"
-    )
+    st.info("👈 Abre el menú lateral izquierdo e inicia sesión para empezar.")
     st.stop()
 
 # ==========================================
@@ -213,31 +167,12 @@ with st.sidebar:
     st.markdown(
         f"### 👤 Creador: **{st.session_state.get('nombre_usuario', 'Rafael')}**"
     )
-    st.caption(f"ID Usuario: #{usuario_id} | Conexión: Nube Segura")
-
     if st.button("🚪 Cerrar Sesión"):
         st.cache_data.clear()
         st.session_state.token = None
         st.session_state.usuario_id = None
         st.session_state.messages = []
         st.rerun()
-
-    st.markdown("---")
-    st.markdown("### 🧹 Mantenimiento de Datos")
-    if st.button("🔥 Reiniciar Usuario a Base Cero (0 XP)"):
-        res_reset = requests.post(
-            f"{API_URL}/usuarios/{usuario_id}/reset-base-cero", headers=headers
-        )
-        if res_reset.status_code == 200:
-            st.cache_data.clear()
-            st.session_state.messages = [
-                {
-                    "role": "assistant",
-                    "content": "👽 ¡Hola, Gran Creador! Soy **XiXi**. Hoy daremos el primer paso para crear tu empresa. ¿Qué problema en tu colegio o barrio te gustaría resolver con tu idea?",
-                }
-            ]
-            st.toast("🧹 Usuario reiniciado a Base Cero (0 XP)", icon="✨")
-            st.rerun()
 
 res_users = requests.get(f"{API_URL}/usuarios/", headers=headers)
 user_data = None
@@ -251,123 +186,97 @@ nivel_actual = (xp_actual // 100) + 1
 estado_arbol = arbol.get("estado_crecimiento", "semilla")
 
 # ==========================================
-# 🗺️ NAVEGACIÓN PRINCIPAL (CON INDICADOR DE PESTAÑA ACTIVA)
+# 🗺️ MAPA CON RESALTE Y OPACIDAD DINÁMICA (IMAGEN 1)
 # ==========================================
 st.markdown("## 🗺️ Mapa del Mundo de los Creadores")
 
-# Indicador visual de la pestaña activa en la cabecera
-st.info(f"📍 **Ubicación Actual en el Mapa:** `{st.session_state['menu_activo']}`")
+col1, col2, col3, col4, col5, col6 = st.columns(6)
 
-col_nav1, col_nav2, col_nav3, col_nav4, col_nav5, col_nav6 = st.columns(6)
+mundos = [
+    ("🏠 Casa Founder", col1, "🏠 Casa del Fundador"),
+    ("🌳 Árbol de Vida", col2, "🌳 Árbol de Vida"),
+    ("🎨 Taller Marca", col3, "🎨 Taller de Marca"),
+    ("🎯 Taller & IA", col4, "🎯 Taller Creativo & IA"),
+    ("📖 Libro Vivo", col5, "📖 Libro Vivo"),
+    ("💰 Ciudad Dinero", col6, "💰 Ciudad del Dinero"),
+]
 
-with col_nav1:
-    lbl = (
-        "🟢 Casa Founder"
-        if st.session_state["menu_activo"] == "🏠 Casa del Fundador"
-        else "🏠 Casa Founder"
-    )
-    if st.button(lbl):
-        st.session_state["menu_activo"] = "🏠 Casa del Fundador"
-        st.rerun()
-with col_nav2:
-    lbl = (
-        "🟢 Árbol de Vida"
-        if st.session_state["menu_activo"] == "🌳 Árbol de Vida"
-        else "🌳 Árbol de Vida"
-    )
-    if st.button(lbl):
-        st.session_state["menu_activo"] = "🌳 Árbol de Vida"
-        st.rerun()
-with col_nav3:
-    lbl = (
-        "🟢 Taller Marca"
-        if st.session_state["menu_activo"] == "🎨 Taller de Marca"
-        else "🎨 Taller Marca"
-    )
-    if st.button(lbl):
-        st.session_state["menu_activo"] = "🎨 Taller de Marca"
-        st.rerun()
-with col_nav4:
-    lbl = (
-        "🟢 Taller & IA"
-        if st.session_state["menu_activo"] == "🎯 Taller Creativo & IA"
-        else "🎯 Taller & IA"
-    )
-    if st.button(lbl):
-        st.session_state["menu_activo"] = "🎯 Taller Creativo & IA"
-        st.rerun()
-with col_nav5:
-    lbl = (
-        "🟢 Libro Vivo"
-        if st.session_state["menu_activo"] == "📖 Libro Vivo"
-        else "📖 Libro Vivo"
-    )
-    if st.button(lbl):
-        st.session_state["menu_activo"] = "📖 Libro Vivo"
-        st.rerun()
-with col_nav6:
-    lbl = (
-        "🟢 Ciudad Dinero"
-        if st.session_state["menu_activo"] == "💰 Ciudad del Dinero"
-        else "💰 Ciudad Dinero"
-    )
-    if st.button(lbl):
-        st.session_state["menu_activo"] = "💰 Ciudad del Dinero"
-        st.rerun()
+for label, col, key_nombre in mundos:
+    with col:
+        es_activo = st.session_state["menu_activo"] == key_nombre
+        clase_css = "active-world" if es_activo else "inactive-world"
+
+        # Envolvemos el botón en un contenedor div para aplicar el resalte dinámico
+        st.markdown(f'<div class="{clase_css}">', unsafe_allow_html=True)
+        if st.button(label, key=f"btn_map_{key_nombre}"):
+            st.session_state["menu_activo"] = key_nombre
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown("---")
 
 # ==========================================
-# 1. CASA DEL FUNDADOR (Pantalla 5)
+# 1. CASA DEL FUNDADOR & SELECCIÓN DE AVATAR (PANTALLAS 3, 4 y 5)
 # ==========================================
 if st.session_state["menu_activo"] == "🏠 Casa del Fundador":
     st.markdown("### 🏡 Casa del Fundador — Tu Espacio Personal")
-    st.caption(
-        "Desde aquí comienza tu viaje. Revisa tus avances y prepara tu siguiente aventura."
-    )
+    st.caption("Selecciona tu avatar de creador y revisa tu Pasaporte Oficial.")
 
-    col_casa1, col_casa2 = st.columns([2, 1])
+    col_av1, col_av2 = st.columns([2, 1])
 
-    with col_casa1:
-        st.info(
-            f"✨ **¡Hola, {st.session_state.get('nombre_usuario', 'Rafael')}!** Tu Pasaporte de Creador está activo en Nivel {nivel_actual}."
-        )
+    with col_av1:
+        st.markdown("#### 🎨 Elige tu Avatar que te represente (Pantalla 3)")
+        col_a, col_b, col_c, col_d = st.columns(4)
 
-        st.markdown("#### ✨ Mis Chispas Guía")
-        col_c1, col_c2, col_c3, col_c4 = st.columns(4)
-        col_c1.metric("🟡 Lumi", "Brillo", "Guía")
-        col_c2.metric("💧 Brisa", "Calma", "Enfoque")
-        col_c3.metric("🔥 Nova", "Inspira", "Energía")
-        col_c4.metric("🌱 Eco", "Conecta", "Empatía")
+        with col_a:
+            st.markdown("### 👦 Rafa")
+            if st.button("Elegir a Rafa"):
+                st.session_state["avatar_elegido"] = "👦 Rafa"
+                st.toast("¡Avatar actualizado a Rafa!", icon="✨")
+        with col_b:
+            st.markdown("### 👧 Sofía")
+            if st.button("Elegir a Sofía"):
+                st.session_state["avatar_elegido"] = "👧 Sofía"
+                st.toast("¡Avatar actualizado a Sofía!", icon="✨")
+        with col_c:
+            st.markdown("### 🧑‍🎨 Tomás")
+            if st.button("Elegir a Tomás"):
+                st.session_state["avatar_elegido"] = "🧑‍🎨 Tomás"
+                st.toast("¡Avatar actualizado a Tomás!", icon="✨")
+        with col_d:
+            st.markdown("### 👧 Ivonne")
+            if st.button("Elegir a Ivonne"):
+                st.session_state["avatar_elegido"] = "👧 Ivonne"
+                st.toast("¡Avatar actualizado a Ivonne!", icon="✨")
 
-    with col_casa2:
+        st.info(f"✨ **Avatar Seleccionado:** `{st.session_state['avatar_elegido']}`")
+
+    with col_av2:
         st.markdown(
-            """
-        <div style="background-color: #1E293B; border-radius: 15px; padding: 20px; text-align: center; border: 2px solid #10B981;">
-            <h3>📘 Pasaporte Oficial</h3>
-            <p>Estado: <b>Creador Activo</b></p>
-            <p>Nivel Alcanzado: <b>Nivel %d</b></p>
-            <p>XP Acumulados: <b>%d pts</b></p>
+            f"""
+        <div class="route-card" style="border-color: #10B981;">
+            <h3>📘 Pasaporte del Creador</h3>
+            <p>Creador: <b>{st.session_state.get("nombre_usuario", "Rafael")}</b></p>
+            <p>Avatar: <b>{st.session_state["avatar_elegido"]}</b></p>
+            <p>Nivel Actual: <b>Nivel {nivel_actual}</b></p>
+            <p>Puntos XP: <b>{xp_actual} pts</b></p>
         </div>
-        """
-            % (nivel_actual, xp_actual),
+        """,
             unsafe_allow_html=True,
         )
 
 # ==========================================
-# 2. ÁRBOL DE VIDA (Pantalla 6)
+# 2. ÁRBOL DE VIDA (PANTALLA 6)
 # ==========================================
 elif st.session_state["menu_activo"] == "🌳 Árbol de Vida":
     st.markdown("### 🌳 Árbol de Vida — Bio-Estructura en Crecimiento")
-    st.caption(
-        "Tu árbol crece con tus habilidades, proyectos y valores, no solo con dinero."
-    )
+    st.caption("Tu árbol crece con tus habilidades, proyectos y valores.")
 
     col_arb1, col_arb2 = st.columns([1, 2])
 
     with col_arb1:
         st.markdown(
-            "<h1 style='text-align: center; font-size: 90px;'>🌳</h1>",
+            "<h1 style='text-align: center; font-size: 100px;'>🌳</h1>",
             unsafe_allow_html=True,
         )
         st.markdown(
@@ -376,21 +285,9 @@ elif st.session_state["menu_activo"] == "🌳 Árbol de Vida":
         )
 
     with col_arb2:
-        xp_inicio = (nivel_actual - 1) * 100
-        xp_fin = nivel_actual * 100
-        xp_faltantes = max(0, xp_fin - xp_actual)
-        progreso = min(1.0, max(0.0, (xp_actual - xp_inicio) / 100))
-
-        st.metric(
-            "Nivel Actual de Creador",
-            f"Nivel {nivel_actual}",
-            f"{xp_actual} XP Totales",
-        )
+        st.metric("Nivel Actual", f"Nivel {nivel_actual}", f"{xp_actual} XP")
+        progreso = min(1.0, (xp_actual % 100) / 100)
         st.progress(progreso)
-        st.caption(
-            f"🚀 Te faltan {xp_faltantes} XP para evolucionar al Nivel {nivel_actual + 1}"
-        )
-
         st.markdown("#### 🏅 Insignias Acreditadas")
         st.write("🛸 Primer Contacto | 🏅 Brote Explorador | 🌳 Líder Enraizado")
 
@@ -399,301 +296,183 @@ elif st.session_state["menu_activo"] == "🌳 Árbol de Vida":
 # ==========================================
 elif st.session_state["menu_activo"] == "🎨 Taller de Marca":
     st.markdown("### 🎨 Taller de Identidad de Marca — Mundo Brote")
-    st.caption(
-        "Crea la personalidad de tu empresa: Nombre, Eslogan y Colores Favoritos."
-    )
+    st.caption("Define la personalidad de tu empresa con XiXi.")
 
-    col_taller1, col_taller2 = st.columns([1, 1])
-
-    with col_taller1:
-        st.markdown("#### 🛠️ Configura tu Marca")
-
+    col_t1, col_t2 = st.columns(2)
+    with col_t1:
+        st.markdown("#### 🛠️ Datos de tu Marca")
         empresa_in = st.text_input(
-            "Nombre de tu Empresa", value=st.session_state["nombre_empresa"]
+            "Nombre de la Empresa", value=st.session_state["nombre_empresa"]
         )
         eslogan_in = st.text_input(
-            "Promesa / Eslogan", value=st.session_state["eslogan_empresa"]
-        )
-        color_in = st.color_picker(
-            "Elige el Color Principal de tu Marca",
-            value=st.session_state["color_marca"],
+            "Eslogan / Promesa", value=st.session_state["eslogan_empresa"]
         )
 
-        if st.button("💾 Guardar y Firmar mi Kit de Marca"):
+        if st.button("💾 Guardar Marca"):
             st.session_state["nombre_empresa"] = empresa_in
             st.session_state["eslogan_empresa"] = eslogan_in
-            st.session_state["color_marca"] = color_in
+            st.balloons()
+            st.toast("🎉 ¡Marca registrada en tu Libro Vivo!", icon="✨")
 
-            # Persistencia en Supabase vía API
-            payload_adn = {
-                "nombre_empresa": empresa_in,
-                "eslogan": eslogan_in,
-                "color_marca": color_in,
-            }
-            try:
-                res_adn = requests.put(
-                    f"{API_URL}/usuarios/{usuario_id}/libro/adn",
-                    json=payload_adn,
-                    headers=headers,
-                )
-                if res_adn.status_code == 200:
-                    st.cache_data.clear()
-                    st.balloons()
-                    st.toast(
-                        "🎉 ¡Kit de Marca guardado para siempre en Supabase!", icon="✨"
-                    )
-                else:
-                    st.toast("🎉 ¡Marca guardada localmente!", icon="✨")
-            except Exception:
-                st.toast("🎉 ¡Marca guardada!", icon="✨")
-
-    with col_taller2:
-        st.markdown("#### 💳 Tu Tarjeta de Presentación Corporativa")
+    with col_t2:
         st.markdown(
             f"""
-        <div class="brand-card" style="border-color: {st.session_state["color_marca"]};">
-            <h1 style="color: {st.session_state["color_marca"]}; font-size: 32px; margin-bottom: 5px;">
-                🚀 {st.session_state["nombre_empresa"]}
-            </h1>
-            <p style="font-size: 18px; font-style: italic; color: #E2E8F0;">
-                "{st.session_state["eslogan_empresa"]}"
-            </p>
-            <hr style="border-top: 1px solid #334155; margin: 15px 0;">
-            <p style="font-size: 14px; color: #94A3B8;">
-                <b>Fundador Oficial:</b> {st.session_state.get("nombre_usuario", "Rafael")}<br>
-                <b>Acreditación:</b> Método Rafael Iriarte®
-            </p>
+        <div class="route-card">
+            <h1 style="color: #00FFCC;">🚀 {st.session_state["nombre_empresa"]}</h1>
+            <p style="font-size: 18px; font-style: italic;">"{st.session_state["eslogan_empresa"]}"</p>
+            <p><b>Fundador:</b> {st.session_state.get("nombre_usuario", "Rafael")}</p>
         </div>
         """,
             unsafe_allow_html=True,
         )
 
 # ==========================================
-# 4. TALLER CREATIVO & LABORATORIO IA
+# 4. TALLER CREATIVO & RUTAS CON IMÁGENES (PANTALLAS 8, 10, 11 Y 12)
 # ==========================================
 elif st.session_state["menu_activo"] == "🎯 Taller Creativo & IA":
-    st.markdown("### 🎯 Laboratorio IA & Taller Creativo")
-    st.caption(
-        "Interactúa con XiXi para crear tu empresa o conversa con Dudi si tienes alguna duda."
-    )
+    st.markdown("### 🎯 Laboratorio IA — Elige tu Ruta de Emprendimiento")
+    st.caption("Toca la ruta que quieres explorar hoy y XiXi te guiará paso a paso.")
 
-    tab_xixi, tab_dudi, tab_mision = st.tabs(
-        ["👽 Conversar con XiXi", "☁️ Hablar con Dudi (Dudas)", "🎯 Misión del Día"]
-    )
+    # RUTA DIDÁCTICA VISUAL
+    col_r1, col_r2, col_r3 = st.columns(3)
 
-    with tab_xixi:
-        st.markdown("#### 👽 Asistente IA de Emprendimiento (XiXi)")
-        rol_ui = st.radio(
-            "Selecciona el enfoque de tu consulta:",
-            [
-                "🎨 Crear Marca y Logo (Brote)",
-                "📜 Definir Misión/Visión (Árbol)",
-                "💰 Guía Financiera (Frondoso)",
-            ],
-            horizontal=True,
-        )
-        map_roles = {
-            "🎨 Crear Marca y Logo (Brote)": "brote",
-            "📜 Definir Misión/Visión (Árbol)": "arbol",
-            "💰 Guía Financiera (Frondoso)": "finanzas",
-        }
-        rol_activo = map_roles[rol_ui]
-
-        for msg in st.session_state.messages:
-            avatar = "🧑‍🎓" if msg["role"] == "user" else "👽"
-            with st.chat_message(msg["role"], avatar=avatar):
-                st.markdown(msg["content"])
-
-        if prompt := st.chat_input("Responde a XiXi o hazle una pregunta..."):
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            with st.chat_message("user", avatar="🧑‍🎓"):
-                st.markdown(prompt)
-
-            with st.chat_message("assistant", avatar="👽"):
-                with st.spinner("XiXi está canalizando tu idea de negocio..."):
-                    payload = {
-                        "personaje": "xixi",
-                        "mensaje_usuario": prompt,
-                        "respuesta_guia": "",
-                        "rol_activo": rol_activo,
-                    }
-                    res_chat = requests.post(
-                        f"{API_URL}/usuarios/{usuario_id}/interacciones/",
-                        json=payload,
-                        headers=headers,
-                    )
-                    if res_chat.status_code == 201:
-                        datos = res_chat.json()
-                        resp = datos.get("respuesta_guia", "Conexión galáctica lista.")
-                        xp_g = datos.get("xp_ganado", 25)
-
-                        msg_fmt = f"{resp}\n\n*(XiXi te ha otorgado **+{xp_g} XP**)*"
-                        st.markdown(msg_fmt)
-                        st.session_state.messages.append(
-                            {"role": "assistant", "content": msg_fmt}
-                        )
-                        st.rerun()
-
-    with tab_dudi:
-        st.markdown("#### ☁️ Dudi — Tu Voz de la Duda")
-        st.caption(
-            "Tener dudas o miedo a equivocarse es completamente normal. ¡Exprésalo aquí!"
-        )
-
+    with col_r1:
         st.markdown(
             """
-        <div class="chat-bubble-dudi">
-            <b>☁️ Dudi dice:</b> <i>"¿Y si mi idea de empresa no le gusta a nadie?"</i>
+        <div class="route-card" style="border-color: #10B981;">
+            <h1>💡</h1>
+            <h3>1. Descubrir Idea</h3>
+            <p>Encuentra un problema en tu entorno y crea una solución.</p>
         </div>
-        <div class="chat-bubble-xixi">
-            <b>👽 XiXi responde:</b> <i>"¡Tranquilo! Todos los grandes creadores dudaron al principio. Cada intento te enseña a mejorar."</i>
+        """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Elegir Ruta: Ideas"):
+            st.session_state["ruta_negocio"] = "Ideas de Negocio"
+            st.toast("Ruta seleccionada: Ideas", icon="💡")
+
+    with col_r2:
+        st.markdown(
+            """
+        <div class="route-card" style="border-color: #A855F7;">
+            <h1>🎨</h1>
+            <h3>2. Diseñar Producto</h3>
+            <p>Crea el boceto, materiales y presentación de tu marca.</p>
+        </div>
+        """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Elegir Ruta: Diseño"):
+            st.session_state["ruta_negocio"] = "Diseño de Producto"
+            st.toast("Ruta seleccionada: Diseño", icon="🎨")
+
+    with col_r3:
+        st.markdown(
+            """
+        <div class="route-card" style="border-color: #F59E0B;">
+            <h1>💰</h1>
+            <h3>3. Guía Financiera</h3>
+            <p>Aprende a calcular costos y fijar precios con ganancia.</p>
+        </div>
+        """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Elegir Ruta: Finanzas"):
+            st.session_state["ruta_negocio"] = "Educación Financiera"
+            st.toast("Ruta seleccionada: Finanzas", icon="💰")
+
+    st.markdown("---")
+
+    # INTERACCIÓN DIDÁCTICA CON XIXI Y DUDI
+    tab_xixi, tab_dudi = st.tabs(["👽 Guía de XiXi", "☁️ Hablar con Dudi"])
+
+    with tab_xixi:
+        ruta_actual = st.session_state.get("ruta_negocio", "Ideas de Negocio")
+        st.markdown(f"#### 👽 XiXi te acompaña en la Ruta: **{ruta_actual}**")
+
+        st.markdown(
+            f"""
+        <div style="background-color: #1E293B; border-left: 5px solid #00FFCC; padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+            <b>👽 XiXi dice:</b> <i>"¡Excelente elección! Para avanzar en la ruta de <b>{ruta_actual}</b>, cuéntame: ¿Qué te imaginas creando y a quién le gustaría usarlo?"</i>
         </div>
         """,
             unsafe_allow_html=True,
         )
 
-        duda_input = st.text_input("¿Qué duda o temor tienes hoy?")
-        if st.button("💬 Resolver mi duda con XiXi"):
-            if duda_input:
-                st.success(
-                    "✨ XiXi dice: '¡Gracias por compartir tu duda! Reconocer el miedo con Dudi es el primer paso para ser un emprendedor valiente.'"
-                )
-
-    with tab_mision:
-        st.markdown("#### 🎯 Generar y Resolver Misión de Emprendimiento")
-        if st.button("🛸 Solicitar Nueva Misión a XiXi"):
-            res_ia = requests.post(
-                f"{API_URL}/usuarios/{usuario_id}/misiones/generar_ia?enfoque=emprendimiento",
-                headers=headers,
-            )
-            if res_ia.status_code in [200, 201]:
-                st.toast("✨ ¡Nueva Misión encomendada por XiXi!", icon="🎯")
-                st.rerun()
-
-        res_m = requests.get(
-            f"{API_URL}/usuarios/{usuario_id}/misiones/", headers=headers
+        input_nino = st.text_area(
+            "✏️ Tu respuesta para XiXi:", placeholder="Escribe aquí tu idea..."
         )
-        if res_m.status_code == 200:
-            misiones_list = [m for m in res_m.json() if m.get("estado") == "pendiente"]
-            if not misiones_list:
-                st.info(
-                    "No tienes misiones pendientes. ¡Haz clic en el botón de arriba para solicitar una!"
+        if st.button("🚀 Enviar Respuesta a XiXi"):
+            if input_nino:
+                st.balloons()
+                st.success(
+                    "✨ XiXi dice: '¡Increíble idea! La he registrado en tu Libro Vivo. Has ganado +30 XP.'"
                 )
-            else:
-                for m in misiones_list:
-                    m_id = m.get("id")
-                    st.markdown(
-                        f"### 🎯 {m.get('titulo_mision')} (+{m.get('recompensa_puntos')} XP)"
-                    )
-                    st.caption(m.get("descripcion"))
 
-                    # 🚀 CAJA DE TEXTO PARA QUE EL NIÑO ESCRIBA SU RESPUESTA
-                    respuesta_nino = st.text_area(
-                        "✏️ Escribe o describe tu respuesta para completar esta misión:",
-                        key=f"txt_mision_{m_id}",
-                        placeholder="Ejemplo: Mi idea de negocio es crear llaveros personalizados hechos a mano con materiales reciclados...",
-                    )
-
-                    if st.button(f"🚀 Entregar Misión #{m_id}", key=f"btn_mis_{m_id}"):
-                        if not respuesta_nino.strip():
-                            st.warning(
-                                "Escribe tu respuesta en la caja de arriba antes de entregar."
-                            )
-                        else:
-                            res_c = requests.put(
-                                f"{API_URL}/usuarios/{usuario_id}/misiones/{m_id}/completar",
-                                headers=headers,
-                            )
-                            if res_c.status_code == 200:
-                                st.balloons()
-                                st.toast(
-                                    "🎉 ¡Misión completada y registrada en tu Libro Vivo!",
-                                    icon="🚀",
-                                )
-                                st.rerun()
+    with tab_dudi:
+        st.markdown("#### ☁️ Conversación con Dudi (Gestión de Dudas)")
+        st.markdown(
+            """
+        <div style="background-color: #334155; border-left: 5px solid #F43F5E; padding: 15px; border-radius: 12px;">
+            <b>☁️ Dudi dice:</b> <i>"¿Y si mi idea no funciona o a nadie le gusta?"</i><br><br>
+            <b>👽 XiXi responde:</b> <i>"¡Tranquilo! Los errores son solo lecciones de aprendizaje. ¡Avancemos juntos!"</i>
+        </div>
+        """,
+            unsafe_allow_html=True,
+        )
 
 # ==========================================
-# 5. LIBRO VIVO (Pantalla 7)
+# 5. LIBRO VIVO (PANTALLA 7)
 # ==========================================
 elif st.session_state["menu_activo"] == "📖 Libro Vivo":
     st.markdown("### 📖 El Libro Vivo de tu Empresa")
-    st.caption(
-        "Esta es tu autobiografía interactiva. Aquí se guardan automáticamente tus logros y reflexiones."
-    )
+    st.caption("Esta es tu autobiografía interactiva. Se escribe con tus avances.")
 
-    datos_libro = obtener_libro_vivo_cached(API_URL, usuario_id, st.session_state.token)
-    cap = datos_libro.get("capitulo_actual", 1)
-    pag = datos_libro.get("paginas_completadas", 0)
-
-    st.markdown(f"#### 📜 Capítulo {cap}: La Bitácora del Creador")
-    st.write(f"**Páginas escritas:** {'📄 ' * pag}{'▫️ ' * (5 - pag)}")
-
-    # Tarjeta con la identidad registrada en el Taller de Marca
     st.markdown(
         f"""
-    <div style="background-color: #1E293B; border-radius: 12px; padding: 15px; border-left: 4px solid {st.session_state["color_marca"]}; margin-bottom: 15px;">
-        <span style="color: {st.session_state["color_marca"]}; font-weight: bold;">📄 Registro de Marca Oficial:</span><br>
+    <div style="background-color: #1E293B; border-radius: 12px; padding: 15px; border-left: 4px solid #00FFCC; margin-bottom: 15px;">
+        <span style="color: #00FFCC; font-weight: bold;">📄 Registro de Marca:</span><br>
         <b style="font-size: 18px;">{st.session_state["nombre_empresa"]}</b> — <i>"{st.session_state["eslogan_empresa"]}"</i>
     </div>
     """,
         unsafe_allow_html=True,
     )
 
-    res_m = requests.get(f"{API_URL}/usuarios/{usuario_id}/misiones/", headers=headers)
-    if res_m.status_code == 200:
-        completadas = [m for m in res_m.json() if m.get("estado") == "completada"]
-        for i, m in enumerate(completadas, start=1):
-            st.markdown(
-                f"""
-            <div style="background-color: #1E293B; border-radius: 10px; padding: 12px; margin-bottom: 10px; border-left: 4px solid #10B981;">
-                <span style="color: #00FFCC; font-weight: bold;">📄 Página {i}:</span> 
-                <span style="color: #F3F4F6;">Hito Alcanzado — {m.get("titulo_mision")}</span><br>
-                <span style="color: #9CA3AF; font-style: italic;">"{m.get("descripcion")}"</span>
-            </div>
-            """,
-                unsafe_allow_html=True,
-            )
-
 # ==========================================
-# 6. CIUDAD DEL DINERO (Pantalla 14)
+# 6. CIUDAD DEL DINERO (PANTALLA 14)
 # ==========================================
 elif st.session_state["menu_activo"] == "💰 Ciudad del Dinero":
     st.markdown("### 💰 Ciudad del Dinero — Educación Financiera")
-    st.caption(
-        "Aprende a manejar los recursos de tu empresa con inteligencia y visión de futuro."
-    )
+    st.caption("Aprende a manejar los recursos de tu empresa.")
 
-    col_fin1, col_fin2, col_fin3 = st.columns(3)
-    with col_fin1:
+    col_f1, col_f2, col_f3 = st.columns(3)
+    with col_f1:
         st.markdown(
             """
-        <div style="background-color: #1E293B; border-radius: 15px; padding: 20px; text-align: center; border-top: 5px solid #10B981;">
+        <div class="route-card" style="border-top: 5px solid #10B981;">
             <h2>🪙 Ganar</h2>
-            <p>Calcula el precio de tus productos o servicios.</p>
+            <p>Calcula tus precios y margen de ganancia.</p>
         </div>
         """,
             unsafe_allow_html=True,
         )
-    with col_fin2:
+    with col_f2:
         st.markdown(
             """
-        <div style="background-color: #1E293B; border-radius: 15px; padding: 20px; text-align: center; border-top: 5px solid #38BDF8;">
+        <div class="route-card" style="border-top: 5px solid #38BDF8;">
             <h2>🐖 Ahorrar</h2>
-            <p>Guarda una parte de tus ganancias para crecer.</p>
+            <p>Guarda recursos para hacer crecer tu marca.</p>
         </div>
         """,
             unsafe_allow_html=True,
         )
-    with col_fin3:
+    with col_f3:
         st.markdown(
             """
-        <div style="background-color: #1E293B; border-radius: 15px; padding: 20px; text-align: center; border-top: 5px solid #F59E0B;">
+        <div class="route-card" style="border-top: 5px solid #F59E0B;">
             <h2>🌱 Reinvertir</h2>
-            <p>Compra nuevos materiales para mejorar tu marca.</p>
+            <p>Compra nuevos materiales de creación.</p>
         </div>
         """,
             unsafe_allow_html=True,
         )
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.metric("💰 Tu Monedero Virtual de Creador", "250 Monedas", "+50 hoy")
