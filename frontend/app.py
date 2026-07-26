@@ -6,19 +6,82 @@ import io
 from fpdf import FPDF
 from streamlit_lottie import st_lottie
 
-# Configuración de la página
-st.set_page_config(page_title="Historias que Inspiran®", page_icon="🌱", layout="wide")
+# ==========================================
+# 📐 CONFIGURACIÓN TÁCTIL E INTERACTIVA (Redmi Pad / Tablet)
+# ==========================================
+st.set_page_config(
+    page_title="Historias que Inspiran® | Plataforma de Emprendimiento",
+    page_icon="🌱",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+# Estilos CSS Personalizados para Simular Experiencia de App/Videojuego
+st.markdown(
+    """
+<style>
+    /* Estilo del contenedor principal */
+    .stApp {
+        background-color: #0B131F;
+        color: #F3F4F6;
+    }
+    
+    /* Botones estilo Videojuego */
+    .stButton>button {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        color: white;
+        font-weight: bold;
+        border-radius: 15px;
+        border: none;
+        padding: 12px 24px;
+        box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.39);
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+    
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.55);
+    }
+
+    /* Tarjetas Interactivas de Mundos */
+    .world-card {
+        background: #1E293B;
+        border-radius: 20px;
+        padding: 20px;
+        border: 2px solid #334155;
+        text-align: center;
+        transition: transform 0.2s;
+    }
+    
+    /* Burbuja de Chat Dudi / XiXi */
+    .chat-bubble-xixi {
+        background-color: #1E293B;
+        border-left: 5px solid #00FFCC;
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 10px;
+    }
+    
+    .chat-bubble-dudi {
+        background-color: #334155;
+        border-left: 5px solid #F43F5E;
+        padding: 15px;
+        border-radius: 12px;
+        margin-bottom: 10px;
+    }
+</style>
+""",
+    unsafe_allow_html=True,
+)
 
 # ==========================================
 # 📍 ENRUTAMIENTO DE ENTORNO E INICIALIZACIÓN
 # ==========================================
 API_URL = "https://historias-que-inspiran-api.onrender.com"
-
-# Credenciales de acceso rápido para pruebas
 DEV_EMAIL = "lindley@historias.com"
 DEV_PASS = "superPassword123"
 
-# 1. Inicialización estructurada de estados de sesión
 if "autenticado" not in st.session_state:
     st.session_state["autenticado"] = False
 if "token" not in st.session_state:
@@ -27,14 +90,15 @@ if "usuario_id" not in st.session_state:
     st.session_state["usuario_id"] = None
 if "messages" not in st.session_state:
     st.session_state["messages"] = []
+if "menu_activo" not in st.session_state:
+    st.session_state["menu_activo"] = "🏠 Casa del Fundador"
 
 
-# ---------------------------------------------------------
+# ==========================================
 # ⚡ FUNCIONES AUXILIARES OPTIMIZADAS (CACHÉ)
-# ---------------------------------------------------------
+# ==========================================
 @st.cache_data(show_spinner=False)
 def cargar_lottie_local(filepath: str):
-    """Carga una animación Lottie directamente desde un archivo físico local."""
     if os.path.exists(filepath):
         try:
             with open(filepath, "r", encoding="utf-8") as f:
@@ -46,7 +110,6 @@ def cargar_lottie_local(filepath: str):
 
 @st.cache_data(ttl=60, show_spinner=False)
 def obtener_libro_vivo_cached(api_url, usuario_id, token):
-    """Consulta el libro vivo con caché de 60s para optimizar peticiones"""
     headers = {"Authorization": f"Bearer {token}"}
     try:
         res = requests.get(f"{api_url}/usuarios/{usuario_id}/libro", headers=headers)
@@ -57,289 +120,129 @@ def obtener_libro_vivo_cached(api_url, usuario_id, token):
     return {"capitulo_actual": 1, "paginas_completadas": 0}
 
 
-@st.cache_data(ttl=300, show_spinner=False)
-def obtener_bio_estructura_cached(api_url, usuario_id, token):
-    """Consulta la bio-estructura con caché de 5 minutos"""
-    headers = {"Authorization": f"Bearer {token}"}
-    try:
-        res = requests.get(
-            f"{api_url}/usuarios/{usuario_id}/bio-estructura", headers=headers
-        )
-        if res.status_code == 200:
-            return res.json()
-    except Exception:
-        pass
-    return {"fase_actual": "1. Semilla", "energia_vital": 100}
-
-
-def autenticar_usuario(email, password):
-    """Función auxiliar para solicitar el token e identificar al usuario vía JSON puro."""
-    try:
-        email_limpio = email.strip()
-        pass_limpio = password.strip()
-        payload = {"email": email_limpio, "password": pass_limpio}
-        response = requests.post(f"{API_URL}/auth/login", json=payload)
-
-        if response.status_code == 200:
-            data = response.json()
-            st.session_state.token = data["access_token"]
-
-            res_users = requests.get(f"{API_URL}/usuarios/")
-            if res_users.status_code == 200:
-                usuarios = res_users.json()
-                user_obj = next(
-                    (u for u in usuarios if u["email"] == email_limpio), None
-                )
-                if user_obj:
-                    st.session_state.usuario_id = user_obj["id"]
-            return True
-        else:
-            st.error(f"Fallo en el Login ({response.status_code}): {response.text}")
-            return False
-
-    except requests.exceptions.ConnectionError:
-        st.error("⏳ No se pudo conectar con el servidor (Render / Localhost).")
-        return False
-
-
-# ---------------------------------------------------------
-# 🔒 SISTEMA DE AUTENTICACIÓN JWT SEGURO (PRODUCCIÓN & MULTI-PERFIL)
-# ---------------------------------------------------------
+# ==========================================
+# 🔒 SISTEMA DE AUTENTICACIÓN / LANDING INFANTIL
+# ==========================================
 if not st.session_state.get("autenticado", False):
-    st.sidebar.markdown("### 🔐 Acceso a la Plataforma")
+    with st.sidebar:
+        st.markdown("### 🔐 Acceso al Universo")
+        tab_login, tab_registro = st.tabs(["🔑 Iniciar Sesión", "📝 Crear Cuenta"])
 
-    tab_login, tab_registro = st.sidebar.tabs(["🔑 Iniciar Sesión", "📝 Crear Cuenta"])
+        with tab_login:
+            email_input = st.text_input(
+                "Correo Electrónico", value=DEV_EMAIL, key="login_email"
+            )
+            password_input = st.text_input(
+                "Contraseña", type="password", value=DEV_PASS, key="login_pass"
+            )
 
-    with tab_login:
-        email_input = st.text_input(
-            "Correo Electrónico", value=DEV_EMAIL, key="login_email"
-        )
-        password_input = st.text_input(
-            "Contraseña", type="password", value=DEV_PASS, key="login_pass"
-        )
-
-        if st.button("🔑 Ingresar", key="btn_login"):
-            if not email_input or not password_input:
-                st.warning("Por favor ingresa credenciales válidas.")
-            else:
+            if st.button("🚀 Entrar al Juego", key="btn_login"):
                 try:
                     response = requests.post(
                         f"{API_URL}/auth/login",
                         json={"email": email_input, "password": password_input},
                     )
-
                     if response.status_code == 200:
                         data_token = response.json()
-
                         st.session_state["token"] = data_token.get("access_token")
                         st.session_state["autenticado"] = True
                         st.session_state["usuario_id"] = data_token.get("usuario_id", 1)
                         st.session_state["nombre_usuario"] = data_token.get(
-                            "nombre", "Lindley"
+                            "nombre", "Rafael"
                         )
-
-                        # Sincronización Persistente de Bio-Estructura (Optimizada)
-                        datos_arbol = obtener_bio_estructura_cached(
-                            API_URL,
-                            st.session_state["usuario_id"],
-                            st.session_state["token"],
-                        )
-                        st.session_state["fase_arbol"] = datos_arbol.get(
-                            "fase_actual", "1. Semilla"
-                        )
-
-                        st.session_state["nivel"] = 1
-                        st.session_state["xp_totales"] = 0
-                        st.session_state["mision_count"] = 1
-                        st.session_state["capitulo_actual"] = 1
-                        st.session_state["paginas_completadas"] = 0
-
-                        st.success("¡Sesión iniciada con sincronización profunda!")
+                        st.success("¡Bienvenido Creador!")
                         st.rerun()
                     else:
-                        st.error(
-                            "Credenciales incorrectas. Verifica tu acceso en la base de datos."
-                        )
+                        st.error("Credenciales incorrectas.")
                 except Exception as e:
-                    st.error(f"Error crítico de conexión: {e}")
+                    st.error(f"Error de conexión: {e}")
 
-    with tab_registro:
-        nuevo_nombre = st.text_input("Nombre Completo", key="reg_nombre")
-        nuevo_email = st.text_input("Correo Electrónico", key="reg_email")
-        nueva_pass = st.text_input("Contraseña", type="password", key="reg_pass")
-
-        if st.button("📝 Registrarme Base Cero", key="btn_registro"):
-            if not nuevo_nombre or not nuevo_email or not nueva_pass:
-                st.warning("Completa todos los campos para registrarte.")
-            else:
-                payload = {
-                    "nombre": nuevo_nombre.strip(),
-                    "email": nuevo_email.strip(),
-                    "password": nueva_pass.strip(),
-                    "rol": "estudiante",
-                }
-                try:
-                    res_reg = requests.post(f"{API_URL}/usuarios/", json=payload)
-                    if res_reg.status_code == 201:
-                        st.success(
-                            "¡Cuenta creada exitosamente! Ahora ve a la pestaña Iniciar Sesión."
-                        )
-                    else:
-                        st.error(
-                            "Error en el registro. El correo podría ya estar en uso."
-                        )
-                except Exception as e:
-                    st.error(f"Error al conectar con el servidor: {e}")
-
-    # =========================================================
-    # 🚀 LANDING PAGE DE BIENVENIDA INFANTIL (NO AUTENTICADO)
-    # =========================================================
-    
-    # 1. Cabecera Principal con Letras Grandes y Emojis
+    # Landing Page de Bienvenida Visual (Pantalla 1 y 2 del Prototipo)
     st.markdown(
         """
-        <div style="text-align: center; padding: 20px 10px;">
-            <h1 style="font-size: 42px; color: #00FFCC; font-weight: 800; margin-bottom: 10px;">
-                🚀 ¡BIENVENIDO A HISTORIAS QUE INSPIRAN! 🚀
-            </h1>
-            <h3 style="font-size: 22px; color: #F3F4F6; font-weight: 500;">
-                ✨ ¡Crea tu propia Empresa desde cero y transforma tus sueños en realidad! ✨
-            </h3>
-        </div>
-        """,
-        unsafe_allow_html=True
+    <div style="text-align: center; padding: 30px 10px;">
+        <h1 style="font-size: 48px; color: #00FFCC; font-weight: 900;">
+            🌱 HISTORIAS QUE INSPIRAN®
+        </h1>
+        <p style="font-size: 22px; color: #E2E8F0;">
+            Descubre tu talento. Crea soluciones. Inspira al mundo. 🚀
+        </p>
+    </div>
+    """,
+        unsafe_allow_html=True,
     )
 
-    # 2. Tarjeta del Saludo de XiXi y Dudi
-    st.markdown(
-        """
-        <div style="background-color: #1E293B; border-radius: 15px; padding: 20px; border: 2px solid #38BDF8; margin-bottom: 25px;">
-            <p style="font-size: 18px; color: #E2E8F0; margin: 0;">
-                👽 <b>XiXi dice:</b> <i>"¡Hola, pequeño Gran Creador! Estoy aquí para acompañarte en este viaje galáctico. Juntos descubriremos tu idea, diseñaremos tu marca y construiremos tu negocio. ¡Incluso cuando aparezca Dudi con algunas dudas, las resolveremos juntos!"</i>
+    col_hero1, col_hero2 = st.columns([1, 1])
+    with col_hero1:
+        st.markdown(
+            """
+        <div style="background-color: #1E293B; border-radius: 20px; padding: 25px; border: 2px solid #00FFCC;">
+            <h2 style="color: #00FFCC;">👽 ¡Hola, Futuro Creador!</h2>
+            <p style="font-size: 18px; line-height: 1.6;">
+                Soy <b>XiXi</b>, tu compañera de aventuras. Juntos vamos a transformar tus ideas en una empresa real. 
+                Aprenderemos a diseñar tu marca, crear tu logo, organizar tu dinero y compartir tu talento con el mundo.
+            </p>
+            <p style="font-size: 16px; color: #94A3B8;">
+                <i>"Ninguna historia es igual. Cada idea tiene alma."</i>
             </p>
         </div>
         """,
-        unsafe_allow_html=True
-    )
-
-    # 3. Vista Previa de los Mundos de Emprendimiento (3 Columnas)
-    col_m1, col_m2, col_m3 = st.columns(3)
-
-    with col_m1:
-        st.markdown(
-            """
-            <div style="background-color: #0F172A; padding: 15px; border-radius: 12px; text-align: center; border-top: 4px solid #10B981;">
-                <h1 style="font-size: 40px; margin: 0;">🌱</h1>
-                <h4 style="color: #10B981; margin-top: 5px;">Mundo Semilla</h4>
-                <p style="font-size: 13px; color: #94A3B8;">Descubre tu Idea de Negocio y resuelve problemas reales.</p>
-            </div>
-            """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
-    with col_m2:
+    with col_hero2:
         st.markdown(
             """
-            <div style="background-color: #0F172A; padding: 15px; border-radius: 12px; text-align: center; border-top: 4px solid #A855F7;">
-                <h1 style="font-size: 40px; margin: 0;">🎨</h1>
-                <h4 style="color: #A855F7; margin-top: 5px;">Mundo Brote</h4>
-                <p style="font-size: 13px; color: #94A3B8;">Diseña tu Nombre, Logo y tus Colores Favoritos.</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    with col_m3:
-        st.markdown(
-            """
-            <div style="background-color: #0F172A; padding: 15px; border-radius: 12px; text-align: center; border-top: 4px solid #F59E0B;">
-                <h1 style="font-size: 40px; margin: 0;">💰</h1>
-                <h4 style="color: #F59E0B; margin-top: 5px;">Mundo Frondoso</h4>
-                <p style="font-size: 13px; color: #94A3B8;">Aprende la Guía Financiera y calcula tus ganancias.</p>
-            </div>
-            """,
-            unsafe_allow_html=True
+        <div style="background-color: #1E293B; border-radius: 20px; padding: 25px; border: 2px solid #F43F5E;">
+            <h2 style="color: #F43F5E;">☁️ ¿Dudas o Miedos? ¡Hola, Dudi!</h2>
+            <p style="font-size: 18px; line-height: 1.6;">
+                A veces aparecerá <b>Dudi</b> a preguntarte <i>"¿Y si me equivoco?"</i>. 
+                ¡No te preocupes! En este universo aprenderemos que los errores también nos enseñan y nos hacen más fuertes.
+            </p>
+        </div>
+        """,
+            unsafe_allow_html=True,
         )
 
     st.markdown("<br>", unsafe_allow_html=True)
-
-    # 4. Indicador Directivo de Acción (Call to Action)
     st.info(
-        "👈 **¡Inicia tu Aventura!** Selecciona **'🔑 Iniciar Sesión'** en el menú de la izquierda e ingresa para comenzar tu historia."
+        "👈 **Abre la barra lateral de la izquierda e inicia sesión para comenzar tu aventura.**"
     )
-
     st.stop()
 
 # ==========================================
 # 🛡️ CABECERAS SEGURAS GLOBALES
 # ==========================================
 headers = {"Authorization": f"Bearer {st.session_state.get('token', '')}"}
-st.sidebar.success("✅ Conexión Segura Activa (JWT)")
-st.sidebar.markdown("---")
-
-# Estilos CSS Personalizados
-st.markdown(
-    """
-    <style>
-    .xixi-floating-badge {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background-color: #1f2937;
-        color: #00ffcc;
-        padding: 12px 20px;
-        border-radius: 30px;
-        box-shadow: 0px 4px 15px rgba(0, 255, 204, 0.3);
-        border: 2px solid #00ffcc;
-        font-weight: bold;
-        z-index: 999999;
-        cursor: pointer;
-    }
-    </style>
-    <div class="xixi-floating-badge">
-        👽 XiXi Órbita Activa | Transmisión En Vivo
-    </div>
-""",
-    unsafe_allow_html=True,
-)
-
-st.title("🌱 Historias que Inspiran®")
-st.subheader("Plataforma EdTech Gamificada")
-
-# =========================================================
-# PANEL DE CONTROL (USUARIO AUTENTICADO)
-# =========================================================
 usuario_id = st.session_state.usuario_id or 1
 
+# Barra Lateral con Mantenimiento
 with st.sidebar:
-    st.markdown("### 👤 Sesión de Usuario")
-    st.info(f"**ID:** `{usuario_id}`\n\n**Conexión:** `Render Nube`")
+    st.markdown(
+        f"### 👤 Creador: **{st.session_state.get('nombre_usuario', 'Rafael')}**"
+    )
+    st.caption(f"ID Usuario: #{usuario_id} | Conexión: Nube Segura")
 
     if st.button("🚪 Cerrar Sesión"):
-        st.cache_data.clear()  # Limpiamos caché al salir
+        st.cache_data.clear()
         st.session_state.token = None
         st.session_state.usuario_id = None
         st.session_state.messages = []
         st.rerun()
 
     st.markdown("---")
-    st.markdown("### 🧹 Mantenimiento de Datos (DEV)")
+    st.markdown("### 🧹 Mantenimiento de Datos")
     if st.button("🔥 Reiniciar Usuario a Base Cero (0 XP)"):
         res_reset = requests.post(
             f"{API_URL}/usuarios/{usuario_id}/reset-base-cero", headers=headers
         )
         if res_reset.status_code == 200:
-            st.cache_data.clear()  # Invalida caché para reflejar Nivel 1
-            st.session_state.messages = []  # 🚀 NUEVO: Borra la memoria del chat actual
-            st.toast(
-                "🧹 Usuario reiniciado a Nivel 1 (0 XP) y Memoria de XiXi borrada",
-                icon="✨",
-            )
+            st.cache_data.clear()
+            st.session_state.messages = []
+            st.toast("🧹 Usuario reiniciado a Base Cero (0 XP)", icon="✨")
             st.rerun()
-        else:
-            st.error("No se pudo procesar el reset.")
 
-# --- OBTENCIÓN DE DATOS REALES ---
+# Obtención de Datos Reales del Usuario
 res_users = requests.get(f"{API_URL}/usuarios/", headers=headers)
 user_data = None
 if res_users.status_code == 200:
@@ -347,738 +250,313 @@ if res_users.status_code == 200:
 
 pasaporte = user_data.get("pasaporte", {}) if user_data else {}
 arbol = user_data.get("arbol", {}) if user_data else {}
-
-nivel_actual = pasaporte.get("nivel_actual", 1)
 xp_actual = pasaporte.get("puntos_experiencia", 0)
+nivel_actual = (xp_actual // 100) + 1
 estado_arbol = arbol.get("estado_crecimiento", "semilla")
-energia_vital = arbol.get("energia_vital", 100)
+
+# ==========================================
+# 🗺️ NAVEGACIÓN PRINCIPAL (MUNDOS / TABLERO)
+# ==========================================
+st.markdown("## 🗺️ Mapa del Mundo de los Creadores")
+
+col_nav1, col_nav2, col_nav3, col_nav4, col_nav5 = st.columns(5)
+
+with col_nav1:
+    if st.button("🏠 Casa Founder"):
+        st.session_state["menu_activo"] = "🏠 Casa del Fundador"
+with col_nav2:
+    if st.button("🌳 Árbol de Vida"):
+        st.session_state["menu_activo"] = "🌳 Árbol de Vida"
+with col_nav3:
+    if st.button("🎯 Taller & IA"):
+        st.session_state["menu_activo"] = "🎯 Taller Creativo & IA"
+with col_nav4:
+    if st.button("📖 Libro Vivo"):
+        st.session_state["menu_activo"] = "📖 Libro Vivo"
+with col_nav5:
+    if st.button("💰 Ciudad Dinero"):
+        st.session_state["menu_activo"] = "💰 Ciudad del Dinero"
 
 st.markdown("---")
 
-# --- 1. VISOR GRÁFICO DEL ÁRBOL ---
-st.markdown("### 🌲 Bio-Estructura en Crecimiento")
-col_img, col_desc = st.columns([1, 4])
+# ==========================================
+# 1. CASA DEL FUNDADOR / HABITACIÓN (Pantalla 5)
+# ==========================================
+if st.session_state["menu_activo"] == "🏠 Casa del Fundador":
+    st.markdown("### 🏡 Casa del Fundador — Tu Espacio Personal")
+    st.caption(
+        "Desde aquí comienza tu viaje. Revisa tus avances y prepara tu siguiente aventura."
+    )
 
-estado_limpio = estado_arbol.strip().lower()
+    col_casa1, col_casa2 = st.columns([2, 1])
 
-mapeo_bio = {
-    "semilla": (
-        "frontend/assets/semilla.json",
-        "1. Semilla (El Inicio de Todo)",
-        "Despertar la curiosidad y la seguridad básica.",
-        "Abre la mente al aprendizaje y la exploración.",
-        "Comienzo a reconocer mi lugar en el mundo.",
-        "Conecta con su esencia y propósito personal.",
-        "Descubre quién soy y qué me hace único.",
-    ),
-    "brote_menor": (
-        "frontend/assets/brote_menor.json",
-        "2. Brote Menor (Mis Primeros Pasos)",
-        "Desarrolla la confianza y la alegría de aprender.",
-        "Fortalece la atención y la memoria.",
-        "Inicia la empatía y la colaboración.",
-        "Descubre la magia de la vida y la gratitud.",
-        "Exploro, juego y aprendo a conocer mi mundo.",
-    ),
-    "brote_explorador": (
-        "frontend/assets/brote_explorador.json",
-        "3. Brote Explorador (Descubro y Me Pregunto)",
-        "Aumenta la autoestima y la curiosidad sana.",
-        "Desarrolla el pensamiento lógico y la creatividad.",
-        "Fortalece la comunicación y el trabajo en equipo.",
-        "Se conecta con su intuición y su voz interior.",
-        "Hago preguntas, busco respuestas y entiendo más.",
-    ),
-    "arbol_joven_enraizado": (
-        "frontend/assets/arbol_joven_enraizado.json",
-        "4. Árbol Joven Enraizado (Construyo Mis Bases)",
-        "Genera estabilidad emocional y autodisciplina.",
-        "Organiza ideas y establece metas.",
-        "Construye relaciones de confianza.",
-        "Fortalece su identidad y sus principios.",
-        "Formo hábitos, valores y una base sólida.",
-    ),
-    "arbol_joven_creativo": (
-        "frontend/assets/arbol_joven_creativo.json",
-        "5. Árbol Joven Creativo (Creo y Transformo)",
-        "Potencia la motivación y la expression personal.",
-        "Desarrolla la creatividad y la resolución de problemas.",
-        "Inspira y motiva a otros con su originalidad.",
-        "Descubre su propósito y talentos únicos.",
-        "Imagino, creo y doy vida a mis ideas.",
-    ),
-    "arbol_joven_empatico": (
-        "frontend/assets/arbol_joven_empatico.json",
-        "6. Árbol Joven Empático (Entiendo y Me Conecto)",
-        "Profundiza la empatía y la inteligencia emocional.",
-        "Amplía la visión y el pensamiento crítico.",
-        "Fortalece la empatía, el respeto y la inclusión.",
-        "Comprende la unidad y la interconexión de la vida.",
-        "Me pongo en el lugar del otro y construyo puentes.",
-    ),
-    "arbol_frondoso_lider": (
-        "frontend/assets/arbol_frondoso_lider.json",
-        "7. Árbol Frondoso Líder (Guío e Inspiro)",
-        "Fortalece la confianza y la madurez emocional.",
-        "Toma decisiones con sabiduría y responsabilidad.",
-        "Influye positivamente en su comunidad.",
-        "Usa su luz para servir y transformo entornos.",
-        "Lidero con el ejemplo y dejo huella positiva.",
-    ),
-    "arbol_frondoso_visionario": (
-        "frontend/assets/arbol_frondoso_visionario.json",
-        "8. Árbol Frondoso Visionario (Sueño en Grande)",
-        "Desarrolla resiliencia y determinación.",
-        "Piensa en grande y anticipa soluciones innovadoras.",
-        "Crea proyectos que impactan a muchos.",
-        "Confía en su propósito y en el camino del alma.",
-        "Tengo visión, planifico y transformo sueños en realidades.",
-    ),
-    "arbol_frondoso_sabio": (
-        "frontend/assets/arbol_frondoso_sabio.json",
-        "9. Árbol Frondoso Sabio (Comparto Mi Sabiduría)",
-        "Refuerza la gratitud y la generosidad.",
-        "Integra conocimiento y experiencia para guiar.",
-        "Forma líderes y deja un impacto duradero.",
-        "Vive su propósito y deja huella en la historia.",
-        "Enseño, acompaño y dejo legado a otros.",
-    ),
-    "arbol_cosmico": (
-        "frontend/assets/arbol_cosmico.json",
-        "10. Árbol Cósmico (Unido al Universo)",
-        "Alcanza la paz interior y plenitud del alma.",
-        "Trasciende límites y comprende la verdad universal.",
-        "Es faro de luz e inspiración para la humanidad.",
-        "Conecta con la energía divina y el todo.",
-        "Estoy en paz, en unidad y expando mi luz al universo.",
-    ),
-}
+    with col_casa1:
+        st.info(
+            f"✨ **¡Hola, {st.session_state.get('nombre_usuario', 'Rafael')}!** Tu Pasaporte de Creador está activo en Nivel {nivel_actual}."
+        )
 
-ruta_anim, titulo_fase, emo, men, soc, esp, frase = mapeo_bio.get(
-    estado_limpio, mapeo_bio["semilla"]
-)
+        # Muro de Chispas / Mascotas
+        st.markdown("#### ✨ Mis Chispas Guía")
+        col_c1, col_c2, col_c3, col_c4 = st.columns(4)
+        col_c1.metric("🟡 Lumi", "Brillo", "Guía")
+        col_c2.metric("💧 Brisa", "Calma", "Enfoque")
+        col_c3.metric("🔥 Nova", "Inspira", "Energía")
+        col_c4.metric("🌱 Eco", "Conecta", "Empatía")
 
-animacion_json = cargar_lottie_local(ruta_anim)
-
-with col_img:
-    if animacion_json:
-        st_lottie(animacion_json, height=140, key=f"lottie_view_{estado_limpio}")
-    else:
-        emojis_fase = {
-            "semilla": "🟡",
-            "brote_menor": "🌱",
-            "brote_explorador": "🍃",
-            "arbol_joven_enraizado": "🪵",
-            "arbol_joven_creativo": "🌳",
-            "arbol_joven_empatico": "💜",
-            "arbol_frondoso_lider": "🌲",
-            "arbol_frondoso_visionario": "🍂",
-            "arbol_frondoso_sabio": "🌸",
-            "arbol_cosmico": "✨",
-        }
-        icono_fallback = emojis_fase.get(estado_limpio, "🌱")
+    with col_casa2:
         st.markdown(
-            f"<h1 style='text-align: center; font-size: 75px; margin: 0;'>{icono_fallback}</h1>",
+            """
+        <div style="background-color: #1E293B; border-radius: 15px; padding: 20px; text-align: center; border: 2px solid #10B981;">
+            <h3>📘 Pasaporte Oficial</h3>
+            <p>Estado: <b>Creador Activo</b></p>
+            <p>Nivel Alcanzado: <b>Nivel %d</b></p>
+            <p>XP Acumulados: <b>%d pts</b></p>
+        </div>
+        """
+            % (nivel_actual, xp_actual),
             unsafe_allow_html=True,
         )
 
-    st.markdown(
-        f"<p style='text-align: center; font-size: 14px; color: #4CAF50; font-weight: bold; margin-top: 5px;'>⚡ Energía Vital<br><span style='font-size: 18px;'>{energia_vital} pts</span></p>",
-        unsafe_allow_html=True,
+# ==========================================
+# 2. ÁRBOL DE VIDA (Pantalla 6)
+# ==========================================
+elif st.session_state["menu_activo"] == "🌳 Árbol de Vida":
+    st.markdown("### 🌳 Árbol de Vida — Bio-Estructura en Crecimiento")
+    st.caption(
+        "Tu árbol crece con tus habilidades, proyectos y valores, no solo con dinero."
     )
 
-with col_desc:
-    contenido_tarjeta = f"""
-    ### 📍 **Fase Actual: {titulo_fase}**
-    *{frase}*
+    col_arb1, col_arb2 = st.columns([1, 2])
 
-    ---
-    * **❤️ Emocional:** {emo}
-    * **🧠 Mental:** {men}
-    * **👥 Social:** {soc}
-    * **✨ Espiritual:** {esp}
-    """
-    st.info(contenido_tarjeta)
-
-st.markdown("---")
-
-# =========================================================
-# SECCIÓN: PASAPORTE DE NIVEL Y PROGRESO
-# =========================================================
-col1, col2 = st.columns(2)
-with col1:
-    st.markdown("### 🎓 Pasaporte de Nivel")
-    st.markdown("#### 🏅 Muro de Logros")
-
-    nivel_calculado = (
-        (xp_actual // 100) + 1
-        if "xp_actual" in locals()
-        else st.session_state.get("nivel", 1)
-    )
-
-    medallas = (
-        ["🛸 Primer Contacto", "🏅 Brote Explorador"]
-        if nivel_calculado >= 3
-        else ["🛸 Primer Contacto"]
-    )
-
-    if nivel_calculado >= 5:
-        medallas.append("🌳 Líder Enraizado")
-
-    col_medallas = st.columns(len(medallas))
-    for idx, medalla in enumerate(medallas):
-        with col_medallas[idx]:
-            st.caption(f"✨ **{medalla}**")
-
-    nivel_real = (xp_actual // 100) + 1
-
-    if "nivel_previo" not in st.session_state:
-        st.session_state["nivel_previo"] = nivel_real
-
-    if nivel_real > st.session_state["nivel_previo"]:
-        st.balloons()
-        st.toast(f"🏆 ¡ASCENSO DE NIVEL! Ahora eres Nivel {nivel_real}", icon="🔥")
-        st.info(
-            f"✨ **¡Felicidades, Lindley!** Has alcanzado el **Nivel {nivel_real}**. Tu Bio-Estructura ha evolucionado."
+    with col_arb1:
+        st.markdown(
+            "<h1 style='text-align: center; font-size: 90px;'>🌳</h1>",
+            unsafe_allow_html=True,
         )
-        st.session_state["nivel_previo"] = nivel_real
+        st.markdown(
+            f"<h3 style='text-align: center; color: #10B981;'>Fase: {estado_arbol.upper()}</h3>",
+            unsafe_allow_html=True,
+        )
 
-    xp_inicio_nivel = (nivel_real - 1) * 100
-    xp_meta_siguiente = nivel_real * 100
+    with col_arb2:
+        xp_inicio = (nivel_actual - 1) * 100
+        xp_fin = nivel_actual * 100
+        xp_faltantes = max(0, xp_fin - xp_actual)
+        progreso = min(1.0, max(0.0, (xp_actual - xp_inicio) / 100))
 
-    xp_nivel_actual = max(0, xp_actual - xp_inicio_nivel)
-    xp_requeridos_nivel = xp_meta_siguiente - xp_inicio_nivel
-    xp_faltantes = max(0, xp_meta_siguiente - xp_actual)
+        st.metric(
+            "Nivel Actual de Creador",
+            f"Nivel {nivel_actual}",
+            f"{xp_actual} XP Totales",
+        )
+        st.progress(progreso)
+        st.caption(
+            f"🚀 Te faltan {xp_faltantes} XP para evolucionar al Nivel {nivel_actual + 1}"
+        )
 
-    porcentaje_progreso = min(1.0, max(0.0, xp_nivel_actual / xp_requeridos_nivel))
+        st.markdown("#### 🏅 Insignias Acreditadas")
+        st.write("🛸 Primer Contacto | 🏅 Brote Explorador | 🌳 Líder Enraizado")
 
-    st.metric(
-        label="Ascenso de Nivel",
-        value=f"Nivel {nivel_real}",
-        delta=f"{xp_actual} XP Totales",
+# ==========================================
+# 3. TALLER CREATIVO & LABORATORIO IA (Pantallas 11, 12, 9 y 10)
+# ==========================================
+elif st.session_state["menu_activo"] == "🎯 Taller Creativo & IA":
+    st.markdown("### 🎯 Laboratorio IA & Taller Creativo")
+    st.caption(
+        "Interactúa con XiXi para crear tu empresa o conversa con Dudi si tienes alguna duda."
     )
 
-    escalones = "🪜 " * nivel_real
-    st.write(f"**Escalera de Progreso:** {escalones} 🧗")
+    tab_xixi, tab_dudi, tab_misión = st.tabs(
+        ["👽 Conversar con XiXi", "☁️ Hablar con Dudi (Dudas)", "🎯 Misión del Día"]
+    )
 
-    st.progress(porcentaje_progreso)
+    # TAB XIXI
+    with tab_xixi:
+        st.markdown("#### 👽 Asistente IA de Emprendimiento (XiXi)")
 
-    st.markdown(
-        f"""
-        <p style='color: #FFFFFF; font-size: 16px; font-weight: bold; margin-top: 8px;'>
-            🚀 Te faltan <span style='color: #00FFCC;'>{xp_faltantes} XP</span> para alcanzar el Nivel {nivel_real + 1}
-        </p>
+        # Selector de Rol Operativo
+        rol_ui = st.radio(
+            "Selecciona el enfoque de tu consulta:",
+            [
+                "🎨 Crear Marca y Logo (Brote)",
+                "📜 Definir Misión/Visión (Árbol)",
+                "💰 Guía Financiera (Frondoso)",
+            ],
+            horizontal=True,
+        )
+        map_roles = {
+            "🎨 Crear Marca y Logo (Brote)": "brote",
+            "📜 Definir Misión/Visión (Árbol)": "arbol",
+            "💰 Guía Financiera (Frondoso)": "finanzas",
+        }
+        rol_activo = map_roles[rol_ui]
+
+        for msg in st.session_state.messages:
+            avatar = "🧑‍🎓" if msg["role"] == "user" else "👽"
+            with st.chat_message(msg["role"], avatar=avatar):
+                st.markdown(msg["content"])
+
+        if prompt := st.chat_input("Pregúntale a XiXi sobre tu empresa..."):
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            with st.chat_message("user", avatar="🧑‍🎓"):
+                st.markdown(prompt)
+
+            with st.chat_message("assistant", avatar="👽"):
+                with st.spinner("XiXi está canalizando tu idea de negocio..."):
+                    payload = {
+                        "personaje": "xixi",
+                        "mensaje_usuario": prompt,
+                        "respuesta_guia": "",
+                        "rol_activo": rol_activo,
+                    }
+                    res_chat = requests.post(
+                        f"{API_URL}/usuarios/{usuario_id}/interacciones/",
+                        json=payload,
+                        headers=headers,
+                    )
+                    if res_chat.status_code == 201:
+                        datos = res_chat.json()
+                        resp = datos.get("respuesta_guia", "Conexión galáctica lista.")
+                        xp_g = datos.get("xp_ganado", 25)
+
+                        msg_fmt = f"{resp}\n\n*(XiXi te ha otorgado **+{xp_g} XP**)*"
+                        st.markdown(msg_fmt)
+                        st.session_state.messages.append(
+                            {"role": "assistant", "content": msg_fmt}
+                        )
+                        st.rerun()
+
+    # TAB DUDI (Gestión Emocional)
+    with tab_dudi:
+        st.markdown("#### ☁️ Dudi — Tu Voz de la Duda")
+        st.caption(
+            "Tener dudas o miedo a equivocarse es completamente normal. ¡Exprésalo aquí!"
+        )
+
+        st.markdown(
+            """
+        <div class="chat-bubble-dudi">
+            <b>☁️ Dudi dice:</b> <i>"¿Y si mi idea de empresa no le gusta a nadie?"</i>
+        </div>
+        <div class="chat-bubble-xixi">
+            <b>👽 XiXi responde:</b> <i>"¡Tranquilo! Todos los grandes creadores dudaron al principio. Cada intento te enseña a mejorar."</i>
+        </div>
         """,
-        unsafe_allow_html=True,
-    )
+            unsafe_allow_html=True,
+        )
 
-with col2:
-    st.markdown("### 📖 Libro Vivo")
+        duda_input = st.text_input("¿Qué duda o temor tienes hoy?")
+        if st.button("💬 Resolver mi duda con XiXi"):
+            if duda_input:
+                st.success(
+                    f"✨ XiXi dice: '¡Gracias por compartir tu duda! Reconocer el miedo con Dudi es el primer paso para ser un emprendedor valiente.'"
+                )
 
-    # 🚀 USO DE FUNCIÓN CON CACHÉ
-    datos_libro = obtener_libro_vivo_cached(API_URL, usuario_id, st.session_state.token)
-    capitulo = datos_libro.get("capitulo_actual", 1)
-    paginas = datos_libro.get("paginas_completadas", 1)
+    # TAB MISIÓN
+    with tab_misión:
+        st.markdown("#### 🎯 Generar Misión de Emprendimiento con IA")
+        if st.button("🛸 Solicitar Nueva Misión a XiXi"):
+            res_ia = requests.post(
+                f"{API_URL}/usuarios/{usuario_id}/misiones/generar_ia?enfoque=emprendimiento",
+                headers=headers,
+            )
+            if res_ia.status_code in [200, 201]:
+                st.toast("✨ ¡Nueva Misión encomendada por XiXi!", icon="🎯")
+                st.rerun()
 
-    st.metric(
-        label="Progreso de Historia",
-        value=f"Capítulo {capitulo}",
-        delta=f"↑ {paginas}/5 Hojas Llenas",
-    )
-
-    iconos_paginas = "📄 " * paginas + "▫️ " * (5 - paginas)
-    st.write(f"**Páginas Escribiéndose:** {iconos_paginas}")
-
-    with st.expander("📖 Leer las páginas de mi historia..."):
-        st.info(f"**Capítulo {capitulo}: La Bitácora del Explorador**")
-
-        res_misiones = requests.get(
+        # Listado de Misiones
+        res_m = requests.get(
             f"{API_URL}/usuarios/{usuario_id}/misiones/", headers=headers
         )
-
-        if res_misiones.status_code == 200:
-            misiones_list = res_misiones.json()
-            completadas = [m for m in misiones_list if m.get("estado") == "completada"]
-
-            if not completadas:
-                st.caption(
-                    "Tu diario aún está en blanco. Completa misiones para escribir tus primeros capítulos."
+        if res_m.status_code == 200:
+            misiones_list = [m for m in res_m.json() if m.get("estado") == "pendiente"]
+            for m in misiones_list:
+                m_id = m.get("id")
+                st.markdown(
+                    f"**{m.get('titulo_mision')}** (+{m.get('recompensa_puntos')} XP)"
                 )
-            else:
-                for i, m in enumerate(completadas, start=1):
-                    titulo_mision = m.get("titulo_mision", "Evolución Continua")
-                    descripcion = m.get(
-                        "descripcion", "Evolución registrada en la bio-estructura."
+                st.caption(m.get("descripcion"))
+                if st.button(f"Completar Misión #{m_id}", key=f"btn_mis_{m_id}"):
+                    res_c = requests.put(
+                        f"{API_URL}/usuarios/{usuario_id}/misiones/{m_id}/completar",
+                        headers=headers,
                     )
+                    if res_c.status_code == 200:
+                        st.balloons()
+                        st.toast("🎉 ¡Misión completada! XP asignados.", icon="🚀")
+                        st.rerun()
 
-                    # Renderizado con Jerarquía Visual Estricta (HTML/CSS inyectado)
-                    st.markdown(
-                        f"""
-                            <div style="font-size: 14px; margin-bottom: 8px; line-height: 1.4;">
-                                <span style="color: #00FFCC; font-weight: bold;">📄 Página {i}:</span> 
-                                <span style="color: #F3F4F6; font-weight: 600;">Hito Alcanzado — {titulo_mision}</span><br>
-                                <span style="color: #9CA3AF; font-style: italic;">"{descripcion}"</span>
-                            </div>
-                            <hr style="margin: 8px 0px; border: 0; border-top: 1px solid #374151;">
-                            """,
-                        unsafe_allow_html=True,
-                    )
-        else:
-            st.caption("Sincronizando el canal de lectura...")
-
-st.markdown("---")
-
-# =========================================================
-# PESTAÑAS DE INTERACCIÓN (CHAT Y MISIONES)
-# =========================================================
-tab_chat, tab_misiones = st.tabs(["👽 Contactar a XiXi", "🎯 Misiones de Evolución"])
-
-with tab_chat:
-    st.markdown("#### Frecuencia de Comunicación Alienígena Abierta")
-    st.caption("XiXi está en línea decodificando tu proceso en tiempo real.")
-    st.markdown("---")
-
-    avatar_dict = {"user": "🧑‍🎓", "assistant": "👽"}
-
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"], avatar=avatar_dict.get(message["role"])):
-            st.markdown(message["content"])
-
-    if prompt := st.chat_input("Transmite tu mensaje a XiXi..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user", avatar="🧑‍🎓"):
-            st.markdown(prompt)
-
-        with st.chat_message("assistant", avatar="👽"):
-            with st.spinner("XiXi está decodificando tus frecuencias con Gemini..."):
-                payload = {
-                    "personaje": "xixi",
-                    "mensaje_usuario": prompt,
-                    "respuesta_guia": "",
-                }
-                res_chat = requests.post(
-                    f"{API_URL}/usuarios/{usuario_id}/interacciones/",
-                    json=payload,
-                    headers=headers,
-                )
-
-                if res_chat.status_code == 201:
-                    datos = res_chat.json()
-                    respuesta = datos.get("respuesta_guia", "Frecuencia interrumpida.")
-                    xp_ganado = datos.get("xp_ganado", 0)
-                    energia_ganada = datos.get("energia_ganada", 0)
-
-                    mensaje_formateado = (
-                        f"{respuesta}\n\n*(XiXi ha canalizado **+{xp_ganado} XP** a tu "
-                        f"Pasaporte y **+{energia_ganada} pts** a tu Energía Vital)*"
-                    )
-
-                    st.markdown(mensaje_formateado)
-                    st.session_state.messages.append(
-                        {"role": "assistant", "content": mensaje_formateado}
-                    )
-
-                    try:
-                        res_evo = requests.post(
-                            f"{API_URL}/usuarios/{usuario_id}/evolucionar?xp_ganado={xp_ganado}",
-                            headers=headers,
-                            timeout=10,
-                        )
-
-                        if res_evo.status_code == 200:
-                            st.cache_data.clear()  # 🚀 INVALIDACIÓN DE CACHÉ POST-EVOLUCIÓN
-                            datos_actualizados = res_evo.json()
-
-                            st.session_state["xp_totales"] = datos_actualizados.get(
-                                "xp_totales"
-                            )
-                            st.session_state["nivel"] = datos_actualizados.get(
-                                "nivel_actual"
-                            )
-
-                            st.toast(
-                                f"✨ +{xp_ganado} XP Procesados | Nivel Actual: {st.session_state['nivel']}",
-                                icon="🚀",
-                            )
-                    except Exception as e:
-                        st.error(f"Error de red al sincronizar evolución: {str(e)}")
-
-                    st.rerun()
-                else:
-                    st.error("Anomalía detectada. No se pudo enlazar con XiXi.")
-
-with tab_misiones:
-    st.markdown("### 🎯 Desafíos de Sincronización")
-
-    # --- NUEVO: Selector de Enfoque Estratégico Adaptativo ---
-    st.markdown("**🧠 Define tu rol operativo para la próxima misión:**")
-    enfoque_seleccionado = st.radio(
-        "Enfoque:",
-        [
-            "💻 Arquitectura y Código Limpio (Ingeniería)",
-            "🚀 Liderazgo y Estrategia (Emprendimiento)",
-            "✨ Bienestar y Crecimiento (Holístico)",
-        ],
-        horizontal=True,
-        label_visibility="collapsed",
+# ==========================================
+# 4. LIBRO VIVO (Pantalla 7)
+# ==========================================
+elif st.session_state["menu_activo"] == "📖 Libro Vivo":
+    st.markdown("### 📖 El Libro Vivo de tu Empresa")
+    st.caption(
+        "Esta es tu autobiografía interactiva. Aquí se guardan automáticamente tus logros y reflexiones."
     )
 
-    if st.button("👽 Solicitar Misión a XiXi (IA)"):
-        # Mapeo de la selección UI al parámetro de la API
-        map_enfoque = {
-            "💻 Arquitectura y Código Limpio (Ingeniería)": "ingenieria",
-            "🚀 Liderazgo y Estrategia (Emprendimiento)": "emprendimiento",
-            "✨ Bienestar y Crecimiento (Holístico)": "holistico",
-        }
-        param_enfoque = map_enfoque[enfoque_seleccionado]
+    datos_libro = obtener_libro_vivo_cached(API_URL, usuario_id, st.session_state.token)
+    cap = datos_libro.get("capitulo_actual", 1)
+    pag = datos_libro.get("paginas_completadas", 0)
 
-        # Inyectamos el parámetro en la URL
-        res_ia = requests.post(
-            f"{API_URL}/usuarios/{usuario_id}/misiones/generar_ia?enfoque={param_enfoque}",
-            headers=headers,
-        )
+    st.markdown(f"#### 📜 Capítulo {cap}: La Bitácora del Creador")
+    st.write(f"**Páginas escritas:** {'📄 ' * pag}{'▫️ ' * (5 - pag)}")
 
-        if res_ia.status_code in [200, 201]:
-            st.toast(
-                f"✨ ¡Nueva Misión de {param_enfoque.upper()} encomendada por XiXi!",
-                icon="🛸",
+    res_m = requests.get(f"{API_URL}/usuarios/{usuario_id}/misiones/", headers=headers)
+    if res_m.status_code == 200:
+        completadas = [m for m in res_m.json() if m.get("estado") == "completada"]
+        for i, m in enumerate(completadas, start=1):
+            st.markdown(
+                f"""
+            <div style="background-color: #1E293B; border-radius: 10px; padding: 12px; margin-bottom: 10px; border-left: 4px solid #10B981;">
+                <span style="color: #00FFCC; font-weight: bold;">📄 Página {i}:</span> 
+                <span style="color: #F3F4F6;">Hito Alcanzado — {m.get("titulo_mision")}</span><br>
+                <span style="color: #9CA3AF; font-style: italic;">"{m.get("descripcion")}"</span>
+            </div>
+            """,
+                unsafe_allow_html=True,
             )
-            st.rerun()
-        else:
-            st.error("No se pudo conectar con el servidor de IA.")
 
-    # Consulta y renderizado de misiones pendientes
-    res_misiones = requests.get(
-        f"{API_URL}/usuarios/{usuario_id}/misiones/", headers=headers
+# ==========================================
+# 5. CIUDAD DEL DINERO (Pantalla 14)
+# ==========================================
+elif st.session_state["menu_activo"] == "💰 Ciudad del Dinero":
+    st.markdown("### 💰 Ciudad del Dinero — Educación Financiera")
+    st.caption(
+        "Aprende a manejar los recursos de tu empresa con inteligencia y visión de futuro."
     )
 
-    if res_misiones.status_code == 200:
-        misiones_lista = res_misiones.json()
-        misiones_pendientes = [
-            m for m in misiones_lista if m.get("estado") == "pendiente"
-        ]
-
-        if not misiones_pendientes:
-            st.info(
-                "No tienes desafíos pendientes. ¡Solicita uno nuevo a XiXi arriba! 🚀"
-            )
-        else:
-            for mision in misiones_pendientes:
-                mision_id = mision.get("id")
-                titulo = mision.get("titulo_mision", "Desafío de Evolución")
-                recompensa = mision.get("recompensa_puntos", 50)
-
-                col_info, col_btn = st.columns([3, 1])
-                with col_info:
-                    st.markdown(
-                        f"**{titulo}** | <span style='color: #00FFCC;'>+{recompensa} XP</span>",
-                        unsafe_allow_html=True,
-                    )
-                with col_btn:
-                    if st.button(
-                        f"Procesar #{mision_id}", key=f"btn_mision_{mision_id}"
-                    ):
-                        res_completar = requests.put(
-                            f"{API_URL}/usuarios/{usuario_id}/misiones/{mision_id}/completar",
-                            headers=headers,
-                        )
-                        if res_completar.status_code == 200:
-                            st.cache_data.clear()  # 🚀 INVALIDACIÓN DE CACHÉ TRAS MISIÓN
-                            st.balloons()
-                            st.toast(
-                                "🎉 ¡Desafío Sincronizado! Puntos de XP canalizados.",
-                                icon="🚀",
-                            )
-                            st.rerun()
-                        else:
-                            st.error("⚠️ Error en la sincronización con el servidor.")
-
-# =========================================================
-# SECCIÓN: DASHBOARD DE ANALÍTICAS Y CRECIMIENTO HOLÍSTICO
-# =========================================================
-st.markdown("---")
-st.markdown("### 📊 Dashboard de Crecimiento Holístico")
-st.caption(
-    "Visualización métrica del impacto de tus decisiones y misiones completadas."
-)
-
-xp_base = (
-    xp_actual if "xp_actual" in locals() else st.session_state.get("xp_totales", 0)
-)
-
-pts_mental = int(xp_base * 0.30)
-pts_emocional = int(xp_base * 0.25)
-pts_social = int(xp_base * 0.25)
-pts_espiritual = int(xp_base * 0.20)
-
-col_m, col_e, col_s, col_esp = st.columns(4)
-
-with col_m:
-    st.metric(
-        label="🧠 Dimensión Mental",
-        value=f"{pts_mental} pts",
-        delta="Pensamiento Lógico",
-    )
-    st.progress(min(1.0, pts_mental / 200))
-
-with col_e:
-    st.metric(
-        label="❤️ Dimensión Emocional",
-        value=f"{pts_emocional} pts",
-        delta="Resiliencia & Autocontrol",
-    )
-    st.progress(min(1.0, pts_emocional / 200))
-
-with col_s:
-    st.metric(
-        label="👥 Dimensión Social",
-        value=f"{pts_social} pts",
-        delta="Liderazgo & Equipo",
-    )
-    st.progress(min(1.0, pts_social / 200))
-
-with col_esp:
-    st.metric(
-        label="✨ Dimensión Espiritual",
-        value=f"{pts_espiritual} pts",
-        delta="Propósito & Valores",
-    )
-    st.progress(min(1.0, pts_espiritual / 200))
-
-with st.expander("📈 Ver desglose de balance analítico..."):
-    st.write(
-        f"""
-        * **Índice de Madurez de Ingeniería:** `{pts_mental + pts_emocional} pts`
-        * **Índice de Liderazgo Inspirador:** `{pts_social + pts_espiritual} pts`
-        
-        *Tu Bio-Estructura mantiene una tasa de equilibrio de crecimiento de un **{min(100, int((xp_base / 500) * 100))}%** respecto a la meta del Nivel Actual.*
-        """
-    )
-
-
-# =========================================================
-# 📜 CLASE DE DISEÑO PARA CERTIFICADO/REPORTE EJECUTIVO PDF
-# =========================================================
-class ReportePDF(FPDF):
-    def header(self):
-        self.set_fill_color(30, 41, 59)
-        self.rect(0, 0, 210, 20, "F")
-        self.set_font("Helvetica", "B", 12)
-        self.set_text_color(255, 255, 255)
-        self.set_xy(10, 5)
-        self.cell(
-            0, 10, "HISTORIAS QUE INSPIRAN(R) | CERTIFICADO DE EVOLUCION", align="L"
+    col_fin1, col_fin2, col_fin3 = st.columns(3)
+    with col_fin1:
+        st.markdown(
+            """
+        <div style="background-color: #1E293B; border-radius: 15px; padding: 20px; text-align: center; border-top: 5px solid #10B981;">
+            <h2>🪙 Ganar</h2>
+            <p>Calcula el precio de tus productos o servicios.</p>
+        </div>
+        """,
+            unsafe_allow_html=True,
         )
-        self.set_font("Helvetica", "", 8)
-        self.set_xy(10, 11)
-        self.cell(0, 10, "Sistema de Gamificacion & Desarrollo Holistico", align="L")
-        self.ln(15)
-
-    def footer(self):
-        self.set_y(-15)
-        self.set_font("Helvetica", "I", 8)
-        self.set_text_color(100, 116, 139)
-        self.cell(
-            0,
-            10,
-            f"Documento de Progreso Oficial | Verificabilidad JWT | Pagina {self.page_no()}",
-            align="C",
+    with col_fin2:
+        st.markdown(
+            """
+        <div style="background-color: #1E293B; border-radius: 15px; padding: 20px; text-align: center; border-top: 5px solid #38BDF8;">
+            <h2>🐖 Ahorrar</h2>
+            <p>Guarda una parte de tus ganancias para crecer.</p>
+        </div>
+        """,
+            unsafe_allow_html=True,
+        )
+    with col_fin3:
+        st.markdown(
+            """
+        <div style="background-color: #1E293B; border-radius: 15px; padding: 20px; text-align: center; border-top: 5px solid #F59E0B;">
+            <h2>🌱 Reinvertir</h2>
+            <p>Compra nuevos materiales para mejorar tu marca.</p>
+        </div>
+        """,
+            unsafe_allow_html=True,
         )
 
-
-def generar_pdf_certificado(
-    nombre_usuario,
-    usuario_id,
-    nivel,
-    xp_totales,
-    fase_arbol,
-    pts_m,
-    pts_e,
-    pts_s,
-    pts_esp,
-):
-    pdf = ReportePDF(orientation="P", unit="mm", format="A4")
-    pdf.add_page()
-
-    pdf.set_draw_color(203, 213, 225)
-    pdf.set_line_width(0.8)
-    pdf.rect(8, 25, 194, 257)
-
-    pdf.ln(10)
-    pdf.set_font("Helvetica", "B", 20)
-    pdf.set_text_color(15, 23, 42)
-    pdf.cell(
-        0, 10, "INFORME EJECUTIVO DE PROGRESO", align="C", new_x="LMARGIN", new_y="NEXT"
-    )
-
-    pdf.set_font("Helvetica", "", 10)
-    pdf.set_text_color(100, 116, 139)
-    pdf.cell(
-        0,
-        5,
-        "Acreditacion Gamificada de Habilidades y Competencias",
-        align="C",
-        new_x="LMARGIN",
-        new_y="NEXT",
-    )
-    pdf.ln(8)
-
-    # Bloque Datos del Usuario en 3 filas estructuradas
-    pdf.set_fill_color(241, 245, 249)
-    pdf.rect(15, 52, 180, 32, "F")
-
-    # Fila 1
-    pdf.set_xy(20, 55)
-    pdf.set_font("Helvetica", "B", 10)
-    pdf.set_text_color(30, 41, 59)
-    nombre_limpio = str(nombre_usuario).upper()
-    pdf.cell(110, 6, f"ESTUDIANTE: {nombre_limpio}")
-    pdf.cell(
-        50, 6, f"ID USUARIO: #{usuario_id}", align="R", new_x="LMARGIN", new_y="NEXT"
-    )
-
-    # Fila 2
-    pdf.set_x(20)
-    pdf.cell(
-        160,
-        6,
-        f"NIVEL ALCANZADO: Nivel {nivel} ({xp_totales} XP Totales)",
-        new_x="LMARGIN",
-        new_y="NEXT",
-    )
-
-    # Fila 3
-    pdf.set_x(20)
-    pdf.cell(160, 6, f"BIO-ESTRUCTURA: {fase_arbol}", new_x="LMARGIN", new_y="NEXT")
-    pdf.ln(10)
-
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.set_text_color(30, 41, 59)
-    pdf.cell(0, 8, "Muro de Logros Acreditados", new_x="LMARGIN", new_y="NEXT")
-
-    pdf.set_font("Helvetica", "", 10)
-    pdf.set_text_color(51, 65, 85)
-
-    insignias = [" [X] Primer Contacto (Iniciacion en la Plataforma)"]
-    if nivel >= 3:
-        insignias.append(" [X] Brote Explorador (Constancia y Progreso)")
-    if nivel >= 5:
-        insignias.append(" [X] Lider Enraizado (Nivel 5 Alcanzado)")
-
-    for ins in insignias:
-        pdf.cell(0, 6, f"   {ins}", new_x="LMARGIN", new_y="NEXT")
-    pdf.ln(8)
-
-    pdf.set_font("Helvetica", "B", 13)
-    pdf.set_text_color(30, 41, 59)
-    pdf.cell(0, 8, "Matriz de Competencias Holisticas", new_x="LMARGIN", new_y="NEXT")
-
-    pdf.set_fill_color(30, 41, 59)
-    pdf.set_text_color(255, 255, 255)
-    pdf.set_font("Helvetica", "B", 10)
-    pdf.cell(70, 8, " Dimension", border=1, fill=True)
-    pdf.cell(40, 8, " Puntaje", border=1, fill=True, align="C")
-    pdf.cell(
-        70,
-        8,
-        " Enfoque Estrategico",
-        border=1,
-        fill=True,
-        new_x="LMARGIN",
-        new_y="NEXT",
-    )
-
-    datos_tabla = [
-        ("Dimension Mental", f"{pts_m} pts", "Pensamiento Logico & Arquitectura"),
-        ("Dimension Emocional", f"{pts_e} pts", "Resiliencia & Autocontrol"),
-        ("Dimension Social", f"{pts_s} pts", "Liderazgo & Trabajo en Equipo"),
-        ("Dimension Espiritual", f"{pts_esp} pts", "Proposito de Vida & Valores"),
-    ]
-
-    pdf.set_font("Helvetica", "", 10)
-    pdf.set_text_color(30, 41, 59)
-    pdf.set_fill_color(248, 250, 252)
-
-    for i, (dim, pts, enf) in enumerate(datos_tabla):
-        fill = i % 2 == 0
-        pdf.cell(70, 7, f" {dim}", border=1, fill=fill)
-        pdf.cell(40, 7, f"{pts}", border=1, fill=fill, align="C")
-        pdf.cell(70, 7, f" {enf}", border=1, fill=fill, new_x="LMARGIN", new_y="NEXT")
-
-    pdf.ln(15)
-
-    pdf.set_font("Helvetica", "B", 9)
-    pdf.set_text_color(100, 116, 139)
-    pdf.cell(
-        0,
-        5,
-        "FIRMA DIGITAL Y EMBLEMA DE AUTENTICIDAD",
-        align="C",
-        new_x="LMARGIN",
-        new_y="NEXT",
-    )
-    pdf.set_font("Helvetica", "", 8)
-    pdf.cell(
-        0, 4, "Historias que Inspiran(R) - Todos los derechos reservados.", align="C"
-    )
-
-    return bytes(pdf.output())
-
-
-# =========================================================
-# RENDERING EN FRONTEND DE STREAMLIT
-# =========================================================
-st.markdown("---")
-st.markdown("### 📜 Certificación y Reporte de Progreso")
-
-col_rep1, col_rep2 = st.columns([2, 1])
-
-with col_rep1:
-    st.write(
-        """
-        Genera tu **Certificado Oficial de Evolución** en formato PDF con membrete institucional. 
-        Este documento acredita tu nivel, las insignias obtenidas y la matriz de competencias 
-        cuadridimensional alcanzada.
-        """
-    )
-
-with col_rep2:
-    try:
-        nivel_real = (xp_base // 100) + 1
-
-        fases_biologicas = {
-            1: "1. Semilla",
-            2: "2. Brote Menor",
-            3: "3. Brote Explorador",
-            4: "4. Arbol Joven Enraizado",
-            5: "5. Arbol Joven Creativo",
-            6: "6. Arbol Joven Empatico",
-            7: "7. Arbol Frondoso Lider",
-            8: "8. Arbol Frondoso Visionario",
-            9: "9. Arbol Sabio",
-            10: "10. Arbol Cosmico",
-        }
-
-        fase_dinamica = fases_biologicas.get(nivel_real, "Arbol Cosmico")
-
-        pdf_bytes = generar_pdf_certificado(
-            nombre_usuario=st.session_state.get("nombre_usuario", "Lindley"),
-            usuario_id=st.session_state.get("usuario_id", 1),
-            nivel=nivel_real,
-            xp_totales=xp_base,
-            fase_arbol=fase_dinamica,
-            pts_m=pts_mental,
-            pts_e=pts_emocional,
-            pts_s=pts_social,
-            pts_esp=pts_espiritual,
-        )
-
-        st.download_button(
-            label="📄 Descargar Certificado Oficial (.PDF)",
-            data=pdf_bytes,
-            file_name=f"Certificado_Evolucion_{st.session_state.get('nombre_usuario', 'Lindley')}.pdf",
-            mime="application/pdf",
-            key="btn_download_pdf",
-        )
-    except Exception as e:
-        st.error(f"Error al generar el PDF de certificación: {e}")
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.metric("💰 Tu Monedero Virtual de Creador", "250 Monedas", "+50 hoy")
