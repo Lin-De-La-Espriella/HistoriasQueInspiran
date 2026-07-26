@@ -831,3 +831,68 @@ if res_misiones.status_code == 200:
                         st.rerun()
                     else:
                         st.error("⚠️ Error en la sincronización con el servidor.")
+
+# =========================================================
+# SECCIÓN: DASHBOARD DE ANALÍTICAS Y CRECIMIENTO HOLÍSTICO
+# =========================================================
+st.markdown("---")
+st.markdown("### 📊 Dashboard de Crecimiento Holístico")
+st.caption(
+    "Visualización métrica del impacto de tus decisiones y misiones completadas."
+)
+
+# Calculamos los puntos holísticos basados en el XP total acumulado
+xp_base = (
+    xp_actual if "xp_actual" in locals() else st.session_state.get("xp_totales", 0)
+)
+
+pts_mental = int(xp_base * 0.30)
+pts_emocional = int(xp_base * 0.25)
+pts_social = int(xp_base * 0.25)
+pts_espiritual = int(xp_base * 0.20)
+
+# Renderizado de Tarjetas de Impacto en 4 Columnas
+col_m, col_e, col_s, col_esp = st.columns(4)
+
+with col_m:
+    st.metric(
+        label="🧠 Dimensión Mental",
+        value=f"{pts_mental} pts",
+        delta="Pensamiento Lógico",
+    )
+    st.progress(min(1.0, pts_mental / 200))
+
+with col_e:
+    st.metric(
+        label="❤️ Dimensión Emocional",
+        value=f"{pts_emocional} pts",
+        delta="Resiliencia & Autocontrol",
+    )
+    st.progress(min(1.0, pts_emocional / 200))
+
+with col_s:
+    st.metric(
+        label="👥 Dimensión Social",
+        value=f"{pts_social} pts",
+        delta="Liderazgo & Equipo",
+    )
+    st.progress(min(1.0, pts_social / 200))
+
+with col_esp:
+    st.metric(
+        label="✨ Dimensión Espiritual",
+        value=f"{pts_espiritual} pts",
+        delta="Propósito & Valores",
+    )
+    st.progress(min(1.0, pts_espiritual / 200))
+
+# Muestra del Balance General
+with st.expander("📈 Ver desglose de balance analítico..."):
+    st.write(
+        f"""
+        * **Índice de Madurez de Ingeniería:** `{pts_mental + pts_emocional} pts`
+        * **Índice de Liderazgo Inspirador:** `{pts_social + pts_espiritual} pts`
+        
+        *Tu Bio-Estructura mantiene una tasa de equilibrio de crecimiento de un **{min(100, int((xp_base / 500) * 100))}%** respecto a la meta del Nivel Actual.*
+        """
+    )
