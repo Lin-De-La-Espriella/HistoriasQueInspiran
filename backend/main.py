@@ -270,6 +270,34 @@ def completar_mision(
 
 
 # ==========================================
+# SECCIÓN: BIO-ESTRUCTURA Y EVOLUCIÓN
+# ==========================================
+
+
+@app.get("/usuarios/{usuario_id}/bio-estructura", tags=["Gamificación"])
+def obtener_fase_bio_estructura(
+    usuario_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: dict = Depends(security.obtener_usuario_actual),
+):
+    """Retorna la fase actual de la Bio-Estructura del estudiante"""
+    # Consultamos el registro del usuario y su árbol asociado
+    usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado en Supabase")
+
+    # Si el usuario no tiene un árbol inicializado, retornamos la fase base
+    if not usuario.arbol:
+        return {"fase_actual": "1. Semilla", "energia_vital": 100}
+
+    return {
+        "fase_actual": usuario.arbol.fase,
+        "energia_vital": usuario.arbol.energia_vital,
+    }
+
+
+# ==========================================
 # SECCIÓN: LIBRO VIVO (AVANCE Y LECTURA)
 # ==========================================
 

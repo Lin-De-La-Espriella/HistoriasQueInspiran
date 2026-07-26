@@ -70,25 +70,45 @@ if not st.session_state.get("autenticado", False):
                     if response.status_code == 200:
                         data_token = response.json()
 
-                        # 2. Asignación de credenciales seguras (Dinámico)
+                        # Asignación de credenciales seguras
                         st.session_state["token"] = data_token.get("access_token")
                         st.session_state["autenticado"] = True
-
-                        # Mapeo dinámico desde la DB con fallback a entorno local
                         st.session_state["usuario_id"] = data_token.get("usuario_id", 1)
                         st.session_state["nombre_usuario"] = data_token.get(
                             "nombre", "Lindley"
                         )
 
-                        # 3. Inicialización Base Cero en UI (Mejora Continua: A futuro esto vendrá de la DB)
+                        # -----------------------------------------------------
+                        # 🔄 SINCRONIZACIÓN PERSISTENTE DE BIO-ESTRUCTURA
+                        # -----------------------------------------------------
+                        headers_auth = {
+                            "Authorization": f"Bearer {st.session_state['token']}"
+                        }
+                        try:
+                            res_bio = requests.get(
+                                f"{API_URL}/usuarios/{st.session_state['usuario_id']}/bio-estructura",
+                                headers=headers_auth,
+                            )
+                            if res_bio.status_code == 200:
+                                datos_arbol = res_bio.json()
+                                st.session_state["fase_arbol"] = datos_arbol.get(
+                                    "fase_actual", "1. Semilla"
+                                )
+                            else:
+                                st.session_state["fase_arbol"] = "1. Semilla"
+                        except Exception as e:
+                            st.session_state["fase_arbol"] = (
+                                "1. Semilla"  # Fallback de seguridad
+                            )
+
+                        # Sincronización de progreso estándar
                         st.session_state["nivel"] = 1
                         st.session_state["xp_totales"] = 0
-                        st.session_state["fase_arbol"] = "1. Semilla"
                         st.session_state["mision_count"] = 1
                         st.session_state["capitulo_actual"] = 1
                         st.session_state["paginas_completadas"] = 0
 
-                        st.success("¡Sesión iniciada con éxito!")
+                        st.success("¡Sesión iniciada con sincronización profunda!")
                         st.rerun()
                     else:
                         st.error(
