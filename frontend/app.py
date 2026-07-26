@@ -461,6 +461,31 @@ else:
 with col1:
     st.markdown("### 🎓 Pasaporte de Nivel")
 
+    # --- VITRINA DE INSIGNIAS / MEDALLAS ---
+    st.markdown("#### 🏅 Muro de Logros")
+
+    # Aseguramos el cálculo de nivel_real para evitar el error en VS Code
+    nivel_calculado = (
+        (xp_actual // 100) + 1
+        if "xp_actual" in locals()
+        else st.session_state.get("nivel", 1)
+    )
+
+    # Evaluación de medallas ganadas
+    medallas = (
+        ["🛸 Primer Contacto", "🏅 Brote Explorador"]
+        if nivel_calculado >= 3
+        else ["🛸 Primer Contacto"]
+    )
+
+    if nivel_calculado >= 5:
+        medallas.append("🌳 Líder Enraizado")
+
+    col_medallas = st.columns(len(medallas))
+    for idx, medalla in enumerate(medallas):
+        with col_medallas[idx]:
+            st.caption(f"✨ **{medalla}**")
+
     # 1. CÁLCULO DINÁMICO DEL NIVEL
     nivel_real = (xp_actual // 100) + 1
 
