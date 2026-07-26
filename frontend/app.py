@@ -191,9 +191,83 @@ if not st.session_state.get("autenticado", False):
                 except Exception as e:
                     st.error(f"Error al conectar con el servidor: {e}")
 
-    st.warning(
-        "⚠️ Debes iniciar sesión en la barra lateral para acceder al motor gamificado."
+    # =========================================================
+    # 🚀 LANDING PAGE DE BIENVENIDA INFANTIL (NO AUTENTICADO)
+    # =========================================================
+    
+    # 1. Cabecera Principal con Letras Grandes y Emojis
+    st.markdown(
+        """
+        <div style="text-align: center; padding: 20px 10px;">
+            <h1 style="font-size: 42px; color: #00FFCC; font-weight: 800; margin-bottom: 10px;">
+                🚀 ¡BIENVENIDO A HISTORIAS QUE INSPIRAN! 🚀
+            </h1>
+            <h3 style="font-size: 22px; color: #F3F4F6; font-weight: 500;">
+                ✨ ¡Crea tu propia Empresa desde cero y transforma tus sueños en realidad! ✨
+            </h3>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
+
+    # 2. Tarjeta del Saludo de XiXi y Dudi
+    st.markdown(
+        """
+        <div style="background-color: #1E293B; border-radius: 15px; padding: 20px; border: 2px solid #38BDF8; margin-bottom: 25px;">
+            <p style="font-size: 18px; color: #E2E8F0; margin: 0;">
+                👽 <b>XiXi dice:</b> <i>"¡Hola, pequeño Gran Creador! Estoy aquí para acompañarte en este viaje galáctico. Juntos descubriremos tu idea, diseñaremos tu marca y construiremos tu negocio. ¡Incluso cuando aparezca Dudi con algunas dudas, las resolveremos juntos!"</i>
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # 3. Vista Previa de los Mundos de Emprendimiento (3 Columnas)
+    col_m1, col_m2, col_m3 = st.columns(3)
+
+    with col_m1:
+        st.markdown(
+            """
+            <div style="background-color: #0F172A; padding: 15px; border-radius: 12px; text-align: center; border-top: 4px solid #10B981;">
+                <h1 style="font-size: 40px; margin: 0;">🌱</h1>
+                <h4 style="color: #10B981; margin-top: 5px;">Mundo Semilla</h4>
+                <p style="font-size: 13px; color: #94A3B8;">Descubre tu Idea de Negocio y resuelve problemas reales.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with col_m2:
+        st.markdown(
+            """
+            <div style="background-color: #0F172A; padding: 15px; border-radius: 12px; text-align: center; border-top: 4px solid #A855F7;">
+                <h1 style="font-size: 40px; margin: 0;">🎨</h1>
+                <h4 style="color: #A855F7; margin-top: 5px;">Mundo Brote</h4>
+                <p style="font-size: 13px; color: #94A3B8;">Diseña tu Nombre, Logo y tus Colores Favoritos.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with col_m3:
+        st.markdown(
+            """
+            <div style="background-color: #0F172A; padding: 15px; border-radius: 12px; text-align: center; border-top: 4px solid #F59E0B;">
+                <h1 style="font-size: 40px; margin: 0;">💰</h1>
+                <h4 style="color: #F59E0B; margin-top: 5px;">Mundo Frondoso</h4>
+                <p style="font-size: 13px; color: #94A3B8;">Aprende la Guía Financiera y calcula tus ganancias.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # 4. Indicador Directivo de Acción (Call to Action)
+    st.info(
+        "👈 **¡Inicia tu Aventura!** Selecciona **'🔑 Iniciar Sesión'** en el menú de la izquierda e ingresa para comenzar tu historia."
+    )
+
     st.stop()
 
 # ==========================================
