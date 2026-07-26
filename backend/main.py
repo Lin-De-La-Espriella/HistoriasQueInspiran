@@ -38,15 +38,9 @@ class LoginSchema(BaseModel):
 
 @app.post("/auth/login", response_model=schemas.Token, tags=["Autenticación"])
 def login_plataforma_json(login_data: LoginSchema, db: Session = Depends(get_db)):
-    """Endpoint exclusivo para Streamlit: Recibe JSON puro y evita conflictos de formularios."""
+    """Endpoint exclusivo para Streamlit: Recibe JSON puro y devuelve ID y Nombre."""
     email = login_data.email.strip().lower()
     password = login_data.password.strip()
-
-    if not email or not password:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Por favor ingresa un correo y una contraseña válidos.",
-        )
 
     usuario = crud.autenticar_usuario(db, email=email, password_plana=password)
     if not usuario:
@@ -61,7 +55,13 @@ def login_plataforma_json(login_data: LoginSchema, db: Session = Depends(get_db)
         expires_delta=access_token_expires,
     )
 
-    return {"access_token": access_token, "token_type": "bearer"}
+    # 🚀 CORRECCIÓN: Devolvemos usuario_id y nombre al frontend
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "usuario_id": usuario.id,
+        "nombre": usuario.nombre,
+    }
 
 
 @app.post("/token", response_model=schemas.Token, tags=["Autenticación"])
@@ -177,99 +177,53 @@ def listar_usuarios(skip: int = 0, limit: int = 100, db: Session = Depends(get_d
 # ==========================================
 
 
-@app.post("/usuarios/{usuario_id}/misiones/generar_ia", tags=["Gamificación"])
-def crear_mision_personalizada_ia(
-    usuario_id: int,
-    enfoque: str = "emprendimiento",  # 👈 Se añade el enfoque para guiar a los niños
-    db: Session = Depends(get_db),
-):
-    """Endpoint que invoca a XiXi vía Groq Cloud para crear una misión dinámica."""
-    user = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
-    estado_arbol = user.arbol.estado_crecimiento if user.arbol else "semilla"
-    nivel = user.pasaporte.nivel_actual if user.pasaporte else 1
-
-    datos_mision = ia_service.generar_mision_ia(
-        estado_arbol=estado_arbol, nivel_usuario=nivel, enfoque=enfoque
-    )
-
-    nueva_mision = models.Mision(
+def crear_mision_usuario(db: Session, mision: schemas.MisionCrear, usuario_id: int):
+    # 🚀 CORRECCIÓN: Mision en lugar de MisionUsuario
+    db_mision = models.Mision(
         usuario_id=usuario_id,
-        titulo_mision=datos_mision.get("titulo_mision", "Desafío de Evolución"),
-        descripcion=datos_mision.get(
-            "descripcion", "Completa este hito estratégico para tu empresa."
-        ),
-        recompensa_puntos=datos_mision.get("recompensa_puntos", 50),
+        titulo_mision=mision.titulo_mision,
+        recompensa_puntos=mision.recompensa_puntos,
         estado="pendiente",
     )
-
-    db.add(nueva_mision)
+    db.add(db_mision)
     db.commit()
-    db.refresh(nueva_mision)
-
-    return nueva_mision
-
-
-@app.get("/usuarios/{usuario_id}/misiones/", tags=["Gamificación"])
-def obtener_misiones_usuario(
-    usuario_id: int,
-    db: Session = Depends(get_db),
-    usuario_actual: dict = Depends(security.obtener_usuario_actual),  # 🔒 Blindado
-):
-    misiones = (
-        db.query(models.Mision).filter(models.Mision.usuario_id == usuario_id).all()
-    )
-    return misiones
+    db.refresh(db_mision)
+    return db_mision
 
 
-@app.put("/usuarios/{usuario_id}/misiones/{mision_id}/completar", tags=["Gamificación"])
-def completar_mision(
-    usuario_id: int,
-    mision_id: int,
-    db: Session = Depends(get_db),
-    usuario_actual: dict = Depends(security.obtener_usuario_actual),  # 🔒 Blindado
-):
-    # ... lógica de completado y avance de libro vivo ...
-    """Endpoint para marcar una misión como completada y escribir en el Libro Vivo"""
+def obtener_misiones_usuario(db: Session, usuario_id: int):
+    # 🚀 CORRECCIÓN: Mision en lugar de MisionUsuario
+    return db.query(models.Mision).filter(models.Mision.usuario_id == usuario_id).all()
+
+
+def completar_mision(db: Session, usuario_id: int, mision_id: int):
+    # 🚀 CORRECCIÓN: Mision en lugar de MisionUsuario
     mision = (
         db.query(models.Mision)
-        .filter(models.Mision.id == mision_id, models.Mision.usuario_id == usuario_id)
+        .filter(
+            models.Mision.id == mision_id,
+            models.Mision.usuario_id == usuario_id,
+            models.Mision.estado == "pendiente",
+        )
         .first()
     )
 
     if not mision:
-        raise HTTPException(status_code=404, detail="Misión no encontrada")
+        return None
 
-    if mision.estado == "completada":
-        return {"mensaje": "La misión ya estaba completada", "mision": mision}
-
-    # 1. Marcar misión como completada
     mision.estado = "completada"
 
-    # 2. Asignar XP y actualizar árbol
-    db_usuario = (
-        db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    pasaporte = (
+        db.query(models.Pasaporte)
+        .filter(models.Pasaporte.usuario_id == usuario_id)
+        .first()
     )
-    if db_usuario and db_usuario.pasaporte:
-        db_usuario.pasaporte.puntos_experiencia += mision.recompensa_puntos
-        if db_usuario.arbol:
-            evaluar_y_actualizar_arbol(db, db_usuario.arbol, db_usuario.pasaporte)
-
-        # 3. AVANCE AUTOMÁTICO DEL LIBRO VIVO
-        if db_usuario.libro_vivo:
-            db_usuario.libro_vivo.paginas_completadas += 1
-            if db_usuario.libro_vivo.paginas_completadas >= 5:
-                db_usuario.libro_vivo.capitulo_actual += 1
-                db_usuario.libro_vivo.paginas_completadas = 0
+    if pasaporte:
+        pasaporte.puntos_experiencia += mision.recompensa_puntos
 
     db.commit()
     db.refresh(mision)
-    return {
-        "mensaje": "Misión completada y página del Libro Vivo registrada",
-        "mision": mision,
-    }
+    return mision
 
 
 # ==========================================
@@ -283,19 +237,15 @@ def obtener_fase_bio_estructura(
     db: Session = Depends(get_db),
     usuario_actual: dict = Depends(security.obtener_usuario_actual),
 ):
-    """Retorna la fase actual de la Bio-Estructura del estudiante"""
-    # Consultamos el registro del usuario y su árbol asociado
+    """Retorna la fase actual de la Bio-Estructura (Corregido a estado_crecimiento)"""
     usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
 
-    if not usuario:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado en Supabase")
+    if not usuario or not usuario.arbol:
+        return {"fase_actual": "semilla", "energia_vital": 100}
 
-    # Si el usuario no tiene un árbol inicializado, retornamos la fase base
-    if not usuario.arbol:
-        return {"fase_actual": "1. Semilla", "energia_vital": 100}
-
+    # 🚀 CORRECCIÓN: Usamos estado_crecimiento en lugar de .fase
     return {
-        "fase_actual": usuario.arbol.fase,
+        "fase_actual": usuario.arbol.estado_crecimiento,
         "energia_vital": usuario.arbol.energia_vital,
     }
 
