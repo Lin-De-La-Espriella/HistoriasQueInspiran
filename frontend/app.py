@@ -896,3 +896,54 @@ with st.expander("📈 Ver desglose de balance analítico..."):
         *Tu Bio-Estructura mantiene una tasa de equilibrio de crecimiento de un **{min(100, int((xp_base / 500) * 100))}%** respecto a la meta del Nivel Actual.*
         """
     )
+
+# =========================================================
+# SECCIÓN: INFORME EJECUTIVO Y CERTIFICACIÓN DE PROGRESO
+# =========================================================
+st.markdown("---")
+st.markdown("### 📜 Certificación y Reporte de Progreso")
+
+col_rep1, col_rep2 = st.columns([2, 1])
+
+with col_rep1:
+    st.write(
+        """
+        Genera un informe técnico completo con tu avance en la plataforma. 
+        Este documento consolida tu nivel actual, el estado de tu bio-estructura, 
+        las medallas obtenidas en el Muro de Logros y el desglose holístico de tus competencias.
+        """
+    )
+
+with col_rep2:
+    # Construcción del reporte ejecutivo en formato Markdown estructurado
+    reporte_texto = f"""# 🚀 HISTORIAS QUE INSPIRAN® - REPORTE DE EVOLUCIÓN
+---
+**Estudiante:** {st.session_state.get("nombre_usuario", "Lindley")}
+**ID de Usuario:** #{st.session_state.get("usuario_id", 1)}
+**Nivel Alcanzado:** Nivel {st.session_state.get("nivel", 5)} ({xp_base} XP Totales)
+**Fase de Bio-Estructura:** {st.session_state.get("fase_arbol", "Arbol Joven Creativo")}
+
+---
+### 🏅 MURO DE LOGROS E INSIGNIAS
+* 🛸 Primer Contacto (Iniciación en la Plataforma)
+* 🏅 Brote Explorador (Constancia y Progreso)
+* 🌳 Líder Enraizado (Nivel 5 Alcanzado)
+
+---
+### 📊 MATRIZ DE COMPETENCIAS HOLÍSTICAS
+* 🧠 **Dimensión Mental:** {pts_mental} pts (Pensamiento Lógico & Arquitectura)
+* ❤️ **Dimensión Emocional:** {pts_emocional} pts (Resiliencia & Autocontrol)
+* 👥 **Dimensión Social:** {pts_social} pts (Liderazgo & Trabajo en Equipo)
+* ✨ **Dimensión Espiritual:** {pts_espiritual} pts (Propósito de Vida & Valores)
+
+---
+*Documento generado automáticamente por el Motor Gamificado de Historias que Inspiran®.*
+"""
+
+    st.download_button(
+        label="📥 Descargar Reporte Ejecutivo (.txt)",
+        data=reporte_texto,
+        file_name=f"Reporte_Evolucion_{st.session_state.get('nombre_usuario', 'Lindley')}.txt",
+        mime="text/plain",
+        key="btn_download_report",
+    )
