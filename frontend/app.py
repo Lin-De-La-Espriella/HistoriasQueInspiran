@@ -555,14 +555,16 @@ with col2:
             completadas = [m for m in misiones_list if m.get("estado") == "completada"]
 
             if not completadas:
-                    st.caption(
-                        "Tu diario aún está en blanco. Completa misiones para escribir tus primeros capítulos."
-                    )
+                st.caption(
+                    "Tu diario aún está en blanco. Completa misiones para escribir tus primeros capítulos."
+                )
             else:
                 for i, m in enumerate(completadas, start=1):
                     titulo_mision = m.get("titulo_mision", "Evolución Continua")
-                    descripcion = m.get("descripcion", "Evolución registrada en la bio-estructura.")
-                        
+                    descripcion = m.get(
+                        "descripcion", "Evolución registrada en la bio-estructura."
+                    )
+
                     # Renderizado con Jerarquía Visual Estricta (HTML/CSS inyectado)
                     st.markdown(
                         f"""
@@ -573,8 +575,8 @@ with col2:
                             </div>
                             <hr style="margin: 8px 0px; border: 0; border-top: 1px solid #374151;">
                             """,
-                            unsafe_allow_html=True
-                        )
+                        unsafe_allow_html=True,
+                    )
         else:
             st.caption("Sincronizando el canal de lectura...")
 
@@ -662,16 +664,44 @@ with tab_chat:
 with tab_misiones:
     st.markdown("### 🎯 Desafíos de Sincronización")
 
+    # --- NUEVO: Selector de Enfoque Estratégico Adaptativo ---
+    st.markdown("**🧠 Define tu rol operativo para la próxima misión:**")
+    enfoque_seleccionado = st.radio(
+        "Enfoque:",
+        [
+            "💻 Arquitectura y Código Limpio (Ingeniería)",
+            "🚀 Liderazgo y Estrategia (Emprendimiento)",
+            "✨ Bienestar y Crecimiento (Holístico)",
+        ],
+        horizontal=True,
+        label_visibility="collapsed",
+    )
+
     if st.button("👽 Solicitar Misión a XiXi (IA)"):
+        # Mapeo de la selección UI al parámetro de la API
+        map_enfoque = {
+            "💻 Arquitectura y Código Limpio (Ingeniería)": "ingenieria",
+            "🚀 Liderazgo y Estrategia (Emprendimiento)": "emprendimiento",
+            "✨ Bienestar y Crecimiento (Holístico)": "holistico",
+        }
+        param_enfoque = map_enfoque[enfoque_seleccionado]
+
+        # Inyectamos el parámetro en la URL
         res_ia = requests.post(
-            f"{API_URL}/usuarios/{usuario_id}/misiones/generar_ia", headers=headers
+            f"{API_URL}/usuarios/{usuario_id}/misiones/generar_ia?enfoque={param_enfoque}",
+            headers=headers,
         )
-        if res_ia.status_code == 200:
-            st.toast("✨ ¡Nueva Misión encomendada por XiXi!", icon="🛸")
+
+        if res_ia.status_code in [200, 201]:
+            st.toast(
+                f"✨ ¡Nueva Misión de {param_enfoque.upper()} encomendada por XiXi!",
+                icon="🛸",
+            )
             st.rerun()
         else:
             st.error("No se pudo conectar con el servidor de IA.")
 
+    # Consulta y renderizado de misiones pendientes
     res_misiones = requests.get(
         f"{API_URL}/usuarios/{usuario_id}/misiones/", headers=headers
     )
