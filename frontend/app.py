@@ -949,7 +949,7 @@ def generar_pdf_certificado(
 
     # Marco de Certificación Elegante
     pdf.set_draw_color(203, 213, 225)
-    pdf.set_linewidth(0.8)
+    pdf.set_line_width(0.8)  # 🛠️ CORRECCIÓN: Método correcto para fpdf2
     pdf.rect(8, 25, 194, 257)
 
     # Título Principal
@@ -980,7 +980,6 @@ def generar_pdf_certificado(
     pdf.set_font("Helvetica", "B", 11)
     pdf.set_text_color(30, 41, 59)
 
-    # Sanitizamos variables a mayúsculas para el diploma
     nombre_limpio = str(nombre_usuario).upper()
     pdf.cell(80, 6, f"ESTUDIANTE: {nombre_limpio}")
     pdf.cell(
@@ -1069,12 +1068,11 @@ def generar_pdf_certificado(
         0, 4, "Historias que Inspiran(R) - Todos los derechos reservados.", align="C"
     )
 
-    # Retornar como bytes de memoria para Streamlit
     return bytes(pdf.output())
 
 
 # =========================================================
-# SECCIÓN: INFORME EJECUTIVO Y CERTIFICACIÓN DE PROGRESO
+# RENDERING EN FRONTEND DE STREAMLIT
 # =========================================================
 st.markdown("---")
 st.markdown("### 📜 Certificación y Reporte de Progreso")
@@ -1092,12 +1090,11 @@ with col_rep1:
 
 with col_rep2:
     try:
-        # Generar el PDF en memoria utilizando las métricas de la interfaz
         pdf_bytes = generar_pdf_certificado(
             nombre_usuario=st.session_state.get("nombre_usuario", "Lindley"),
             usuario_id=st.session_state.get("usuario_id", 1),
             nivel=st.session_state.get("nivel", 5),
-            xp_totales=xp_base,  # Variable extraída del Dashboard de Analíticas
+            xp_totales=xp_base,
             fase_arbol=st.session_state.get("fase_arbol", "Arbol Joven Creativo"),
             pts_m=pts_mental,
             pts_e=pts_emocional,
@@ -1105,7 +1102,6 @@ with col_rep2:
             pts_esp=pts_espiritual,
         )
 
-        # Botón dinámico que despacha el archivo PDF
         st.download_button(
             label="📄 Descargar Certificado Oficial (.PDF)",
             data=pdf_bytes,
