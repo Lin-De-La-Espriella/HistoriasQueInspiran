@@ -270,34 +270,26 @@ def completar_mision(
 
 
 # ==========================================
-# SECCIÓN: LIBRO VIVO (AVANCE)
+# SECCIÓN: LIBRO VIVO (AVANCE Y LECTURA)
 # ==========================================
 
 
-@app.put(
-    "/usuarios/{usuario_id}/libro/avanzar-pagina",
-    response_model=schemas.LibroVivoRespuesta,
-    tags=["Libro Vivo"],
-)
-def escribir_pagina_libro(
-    usuario_id: int,
-    db: Session = Depends(get_db),
-    # NOTA: Este aún requiere Token, evalúa si lo usarás en Dev Mode
-    usuario_actual: dict = Depends(security.obtener_usuario_actual),
-):
-    libro = crud.obtener_libro_vivo(db=db, usuario_id=usuario_id)
-    if not libro:
-        raise HTTPException(status_code=404, detail="Libro Vivo no encontrado.")
+@app.get("/usuarios/{usuario_id}/libro", tags=["Libro Vivo"])
+def obtener_estado_libro_vivo(usuario_id: int, db: Session = Depends(get_db)):
+    """Endpoint para consultar el progreso actual del Libro Vivo sin arrojar 404"""
+    usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
 
-    libro.paginas_completadas += 1
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-    if libro.paginas_completadas >= 5:
-        libro.capitulo_actual += 1
-        libro.paginas_completadas = 0
+    # Si el usuario es nuevo y no tiene libro, retornamos estado base cero de forma segura
+    if not usuario.libro_vivo:
+        return {"capitulo_actual": 1, "paginas_completadas": 0}
 
-    db.commit()
-    db.refresh(libro)
-    return libro
+    return {
+        "capitulo_actual": usuario.libro_vivo.capitulo_actual,
+        "paginas_completadas": usuario.libro_vivo.paginas_completadas,
+    }
 
 
 # ==========================================
