@@ -14,3 +14,4 @@ python-dotenv
 email-validator
 groq
 fpdf2
+email-validator
