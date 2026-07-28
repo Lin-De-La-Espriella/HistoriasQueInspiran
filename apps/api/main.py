@@ -9,9 +9,9 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from fastapi.responses import StreamingResponse
-from . import models
-from . import schemas
-from .database import engine
+from database import engine
+import models
+import schemas
 import crud
 import database
 import security
