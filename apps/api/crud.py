@@ -7,8 +7,8 @@ Capa de Acceso a Datos (CRUD) y Gamificación
 
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
-import models
-import schemas
+from . import models
+from . import schemas
 import security
 
 # =============================================================================
