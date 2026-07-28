@@ -1,5 +1,0 @@
-streamlit
-requests
-streamlit-lottie
-groq
-fpdf2
