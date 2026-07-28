@@ -12,7 +12,7 @@ from fastapi.responses import StreamingResponse
 from . import models
 from . import schemas
 from .database import engine
-import crud
+from . import crud
 import database
 import security
 import ia_service
