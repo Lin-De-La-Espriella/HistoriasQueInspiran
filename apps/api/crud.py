@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 from . import models
 from . import schemas
-import security
+from . import security
 
 # =============================================================================
 # 1. GESTIÓN DE USUARIOS
